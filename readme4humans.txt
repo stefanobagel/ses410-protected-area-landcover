@@ -1,4 +1,4 @@
-SES410 PROTECTED-AREA LAND COVER
+SES410 PROTECTED-AREA LAND COVER README FOR HUMANS
 
 File Explanations:
 	SES410_landcover.js -- the main reusable classifier tool (Hammer).
