@@ -1,0 +1,1743 @@
+// ---------------------------------------------------------
+// simple KPA land-cover mapping prototype
+// ---------------------------------------------------------
+
+var wdpa = ee.FeatureCollection('WCMC/WDPA/current/polygons');
+
+var sites = {
+  'Skeleton Coast Park': {
+    id: 885,
+    zoom: 7
+  },
+
+  'Salonga National Park': {
+    id: 555697863,
+    zoom: 6
+  }
+};
+
+
+var classNames = [
+  'Water',
+  'Trees',
+  'Grass',
+  'Flooded vegetation',
+  'Crops',
+  'Shrub / scrub',
+  'Built',
+  'Bare',
+  'Snow / ice'
+];
+
+
+var classColors = [
+  '419bdf',
+  '397d49',
+  '88b053',
+  '7a87c6',
+  'e49635',
+  'dfc35a',
+  'c4281b',
+  'a59b8f',
+  'b39fe1'
+];
+
+
+var classNameDict = ee.Dictionary({
+  '0': 'Water',
+  '1': 'Trees',
+  '2': 'Grass',
+  '3': 'Flooded vegetation',
+  '4': 'Crops',
+  '5': 'Shrub / scrub',
+  '6': 'Built',
+  '7': 'Bare',
+  '8': 'Snow / ice'
+});
+
+
+// ---------------------------------------------------------
+// app state
+// ---------------------------------------------------------
+
+var currentGeom = null;
+var currentImg = null;
+var currentLabels = null;
+var currentConfidence = null;
+
+var currentRF = null;
+var currentClassified = null;
+
+var currentTraining = null;
+var currentMetrics = null;
+
+var selectedClassIds = [];
+
+var validationFeatures = [];
+
+var lastClick = null;
+
+var boundaryLayer = null;
+var embeddingLayer = null;
+var suggestedLayer = null;
+var confidenceLayer = null;
+var rfLayer = null;
+var reviewPointLayer = null;
+var clickLayer = null;
+
+
+// ---------------------------------------------------------
+// map + side panel
+// ---------------------------------------------------------
+
+var map = ui.Map();
+
+map.setOptions('SATELLITE');
+
+var panel = ui.Panel({
+  style: {
+    width: '370px',
+    padding: '10px'
+  }
+});
+
+
+ui.root.clear();
+
+ui.root.setLayout(
+  ui.Panel.Layout.flow('horizontal')
+);
+
+ui.root.add(panel);
+ui.root.add(map);
+
+
+// ---------------------------------------------------------
+// title
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    'Protected Area Land-Cover Tool',
+    {
+      fontSize: '22px',
+      fontWeight: 'bold'
+    }
+  )
+);
+
+
+panel.add(
+  ui.Label(
+    'Select a protected area, check the available satellite data, choose useful land-cover classes, create a map, and review the result.'
+  )
+);
+
+
+// ---------------------------------------------------------
+// site selection
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    '1. Choose study area',
+    {
+      fontWeight: 'bold',
+      margin: '16px 0 4px 0'
+    }
+  )
+);
+
+
+var siteSelect = ui.Select({
+  items: [
+    'Skeleton Coast Park',
+    'Salonga National Park'
+  ],
+
+  value: 'Skeleton Coast Park'
+});
+
+
+panel.add(siteSelect);
+
+
+// year
+
+panel.add(
+  ui.Label(
+    'Year'
+  )
+);
+
+
+var yearSelect = ui.Select({
+  items: [
+    '2017',
+    '2018',
+    '2019',
+    '2020',
+    '2021',
+    '2022',
+    '2023',
+    '2024'
+  ],
+
+  value: '2024'
+});
+
+
+panel.add(yearSelect);
+
+
+// conservation question
+
+panel.add(
+  ui.Label(
+    'What does the conservationist want to understand?'
+  )
+);
+
+
+var questionBox = ui.Textbox({
+  placeholder:
+    'Example: Where are vegetation and bare-land areas?',
+  value:
+    'Create a useful land-cover map of the protected area'
+});
+
+
+panel.add(questionBox);
+
+
+// confidence
+
+panel.add(
+  ui.Label(
+    'Minimum confidence for automatic training labels'
+  )
+);
+
+
+var confidenceSlider = ui.Slider({
+  min: 0.50,
+  max: 0.95,
+  value: 0.70,
+  step: 0.05
+});
+
+
+panel.add(confidenceSlider);
+
+
+// ---------------------------------------------------------
+// status
+// ---------------------------------------------------------
+
+var statusLabel = ui.Label({
+  value: 'Select a site and click Analyze Area.',
+  style: {
+    whiteSpace: 'pre'
+  }
+});
+
+
+panel.add(statusLabel);
+
+
+// ---------------------------------------------------------
+// class selection
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    '2. Suggested land-cover classes',
+    {
+      fontWeight: 'bold',
+      margin: '16px 0 4px 0'
+    }
+  )
+);
+
+
+panel.add(
+  ui.Label(
+    'The program will suggest broad classes that actually occur in the selected area. Uncheck classes that are not useful for the conservation question.'
+  )
+);
+
+
+var classPanel = ui.Panel();
+
+panel.add(classPanel);
+
+
+// ---------------------------------------------------------
+// training options
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    '3. Build the classification',
+    {
+      fontWeight: 'bold',
+      margin: '16px 0 4px 0'
+    }
+  )
+);
+
+
+panel.add(
+  ui.Label(
+    'Automatic training samples per class'
+  )
+);
+
+
+var sampleBox = ui.Textbox({
+  value: '150'
+});
+
+
+panel.add(sampleBox);
+
+
+var trainButton = ui.Button({
+  label: 'Train Random Forest + Make Map'
+});
+
+
+panel.add(trainButton);
+
+
+// ---------------------------------------------------------
+// human validation section
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    '4. Human review',
+    {
+      fontWeight: 'bold',
+      margin: '16px 0 4px 0'
+    }
+  )
+);
+
+
+panel.add(
+  ui.Label(
+    'Use the satellite basemap and your knowledge of the area. Click a location, choose what the land actually is, and add it as a validation point.'
+  )
+);
+
+
+var reviewModeButton = ui.Button({
+  label: 'Enter Review Mode'
+});
+
+
+panel.add(reviewModeButton);
+
+
+var clickedLabel = ui.Label(
+  'No location selected.'
+);
+
+
+panel.add(clickedLabel);
+
+
+var reviewClassSelect = ui.Select({
+  items: classNames,
+  value: 'Water'
+});
+
+
+panel.add(reviewClassSelect);
+
+
+// validation buffer
+
+panel.add(
+  ui.Label(
+    'Minimum distance from training samples (m)'
+  )
+);
+
+
+var validationBufferBox = ui.Textbox({
+  value: '100'
+});
+
+
+panel.add(validationBufferBox);
+
+
+var addValidationButton = ui.Button({
+  label: 'Add Reviewed Validation Point'
+});
+
+
+panel.add(addValidationButton);
+
+
+var removeValidationButton = ui.Button({
+  label: 'Remove Last Validation Point'
+});
+
+
+panel.add(removeValidationButton);
+
+
+var validationCountLabel = ui.Label(
+  'Reviewed validation points: 0'
+);
+
+
+panel.add(validationCountLabel);
+
+
+var validateButton = ui.Button({
+  label: 'Calculate Validation Results'
+});
+
+
+panel.add(validateButton);
+
+
+// ---------------------------------------------------------
+// export
+// ---------------------------------------------------------
+
+panel.add(
+  ui.Label(
+    '5. Outputs',
+    {
+      fontWeight: 'bold',
+      margin: '16px 0 4px 0'
+    }
+  )
+);
+
+
+var exportScaleSelect = ui.Select({
+  items: [
+    '10',
+    '30',
+    '60'
+  ],
+
+  value: '30'
+});
+
+
+panel.add(
+  ui.Label(
+    'Raster export scale (m)'
+  )
+);
+
+
+panel.add(exportScaleSelect);
+
+
+var exportButton = ui.Button({
+  label: 'Create Export Tasks'
+});
+
+
+panel.add(exportButton);
+
+
+// ---------------------------------------------------------
+// helpers
+// ---------------------------------------------------------
+
+function addMapLayer(obj, vis, name, shown) {
+
+  var layer = ui.Map.Layer(
+    obj,
+    vis,
+    name,
+    shown
+  );
+
+  map.layers().add(layer);
+
+  return layer;
+}
+
+
+function updateValidationLayer() {
+
+  if (reviewPointLayer !== null) {
+    map.layers().remove(reviewPointLayer);
+  }
+
+  if (validationFeatures.length > 0) {
+
+    reviewPointLayer = addMapLayer(
+      ee.FeatureCollection(validationFeatures),
+      {
+        color: 'cyan',
+        pointSize: 6
+      },
+      'Human validation points',
+      true
+    );
+  }
+
+  validationCountLabel.setValue(
+    'Reviewed validation points: ' +
+    validationFeatures.length
+  );
+}
+
+
+function updateReviewClassMenu() {
+
+  var items = [];
+
+  selectedClassIds
+    .sort(function(a, b) {
+      return a - b;
+    })
+    .forEach(function(id) {
+      items.push(classNames[id]);
+    });
+
+
+  if (items.length === 0) {
+    items = classNames;
+  }
+
+
+  reviewClassSelect.items().reset(items);
+
+  reviewClassSelect.setValue(
+    items[0],
+    false
+  );
+}
+
+
+function getClassIdFromName(name) {
+
+  return classNames.indexOf(name);
+}
+
+
+// ---------------------------------------------------------
+// analyze selected KPA
+// ---------------------------------------------------------
+
+function analyzeArea() {
+
+  map.layers().reset();
+
+  validationFeatures = [];
+
+  updateValidationLayer();
+
+  currentRF = null;
+  currentClassified = null;
+  currentTraining = null;
+  currentMetrics = null;
+
+
+  var siteName = siteSelect.getValue();
+
+  var siteInfo = sites[siteName];
+
+  var year = Number(
+    yearSelect.getValue()
+  );
+
+
+  var feature = wdpa.filter(
+    ee.Filter.eq(
+      'SITE_ID',
+      siteInfo.id
+    )
+  );
+
+
+  currentGeom = feature.geometry();
+
+
+  boundaryLayer = addMapLayer(
+    currentGeom,
+    {
+      color: 'red'
+    },
+    siteName + ' boundary',
+    true
+  );
+
+
+  map.centerObject(
+    currentGeom,
+    siteInfo.zoom
+  );
+
+
+  var start = ee.Date.fromYMD(
+    year,
+    1,
+    1
+  );
+
+
+  var end = start.advance(
+    1,
+    'year'
+  );
+
+
+  var emb = ee.ImageCollection(
+    'GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL'
+  )
+    .filterDate(start, end)
+    .filterBounds(currentGeom);
+
+
+  currentImg = emb
+    .mosaic()
+    .clip(currentGeom);
+
+
+  embeddingLayer = addMapLayer(
+    currentImg,
+    {
+      min: -0.3,
+      max: 0.3,
+      bands: [
+        'A01',
+        'A16',
+        'A09'
+      ]
+    },
+    'Embedding visualization',
+    false
+  );
+
+
+  // Dynamic World
+  var dw = ee.ImageCollection(
+    'GOOGLE/DYNAMICWORLD/V1'
+  )
+    .filterDate(start, end)
+    .filterBounds(currentGeom);
+
+
+  var dwBands = [
+    'water',
+    'trees',
+    'grass',
+    'flooded_vegetation',
+    'crops',
+    'shrub_and_scrub',
+    'built',
+    'bare',
+    'snow_and_ice'
+  ];
+
+
+  var probs = dw
+    .select(dwBands)
+    .mean();
+
+
+  currentConfidence = probs
+    .reduce(
+      ee.Reducer.max()
+    )
+    .rename('confidence');
+
+
+  var labels = probs
+    .toArray()
+    .arrayArgmax()
+    .arrayGet([0])
+    .rename('class')
+    .toInt();
+
+
+  var confidenceLimit =
+    confidenceSlider.getValue();
+
+
+  currentLabels = labels
+    .updateMask(
+      currentConfidence.gte(
+        confidenceLimit
+      )
+    )
+    .updateMask(
+      currentImg
+        .select('A00')
+        .mask()
+    );
+
+
+  suggestedLayer = addMapLayer(
+    currentLabels,
+    {
+      min: 0,
+      max: 8,
+      palette: classColors
+    },
+    'Suggested classes',
+    false
+  );
+
+
+  confidenceLayer = addMapLayer(
+    currentConfidence,
+    {
+      min: 0,
+      max: 1
+    },
+    'Reference confidence',
+    false
+  );
+
+
+  // park area
+  currentGeom
+    .area()
+    .divide(1e6)
+    .evaluate(function(area) {
+
+      statusLabel.setValue(
+        siteName +
+        '\nArea: ' +
+        Math.round(area).toLocaleString() +
+        ' km²\nChecking embedding coverage...'
+      );
+    });
+
+
+  // check coverage
+  var valid = currentImg
+    .select('A00')
+    .mask()
+    .unmask(0);
+
+
+  valid.reduceRegion({
+    reducer: ee.Reducer.mean(),
+
+    geometry: currentGeom,
+
+    scale: 500,
+
+    maxPixels: 1e10,
+
+    bestEffort: true,
+
+    tileScale: 4
+
+  }).get('A00')
+    .evaluate(function(value) {
+
+      var percent =
+        value === null
+          ? 'Unknown'
+          : (value * 100).toFixed(1) + '%';
+
+
+      var oldText =
+        statusLabel.getValue();
+
+
+      statusLabel.setValue(
+        oldText +
+        '\nEmbedding coverage: ' +
+        percent
+      );
+    });
+
+
+  // find which classes actually appear
+  currentLabels.reduceRegion({
+
+    reducer:
+      ee.Reducer.frequencyHistogram(),
+
+    geometry: currentGeom,
+
+    scale: 100,
+
+    maxPixels: 1e10,
+
+    bestEffort: true,
+
+    tileScale: 4
+
+  })
+    .get('class')
+    .evaluate(function(hist) {
+
+      classPanel.clear();
+
+      selectedClassIds = [];
+
+
+      if (!hist) {
+
+        classPanel.add(
+          ui.Label(
+            'No high-confidence classes found.'
+          )
+        );
+
+        return;
+      }
+
+
+      var ids = Object.keys(hist)
+        .map(function(x) {
+          return Number(x);
+        })
+        .sort(function(a, b) {
+          return a - b;
+        });
+
+
+      ids.forEach(function(id) {
+
+        selectedClassIds.push(id);
+
+
+        var count = hist[id];
+
+
+        var checkbox = ui.Checkbox({
+
+          label:
+            classNames[id] +
+            '  (' +
+            Number(count).toLocaleString() +
+            ' sampled pixels)',
+
+          value: true,
+
+          onChange: function(checked) {
+
+            if (checked) {
+
+              if (
+                selectedClassIds.indexOf(id) === -1
+              ) {
+                selectedClassIds.push(id);
+              }
+
+            } else {
+
+              selectedClassIds =
+                selectedClassIds.filter(
+                  function(x) {
+                    return x !== id;
+                  }
+                );
+            }
+
+
+            updateReviewClassMenu();
+          }
+        });
+
+
+        classPanel.add(
+          checkbox
+        );
+      });
+
+
+      updateReviewClassMenu();
+    });
+}
+
+
+// ---------------------------------------------------------
+// train model
+// ---------------------------------------------------------
+
+function trainModel() {
+
+  if (currentImg === null) {
+
+    statusLabel.setValue(
+      'Analyze a study area first.'
+    );
+
+    return;
+  }
+
+
+  if (selectedClassIds.length < 2) {
+
+    statusLabel.setValue(
+      'Select at least two land-cover classes.'
+    );
+
+    return;
+  }
+
+
+  var samplesPerClass =
+    Number(sampleBox.getValue());
+
+
+  var toValues = [];
+
+  selectedClassIds.forEach(
+    function() {
+      toValues.push(1);
+    }
+  );
+
+
+  var selectedMask =
+    currentLabels.remap(
+      selectedClassIds,
+      toValues,
+      0
+    );
+
+
+  var selectedLabels =
+    currentLabels.updateMask(
+      selectedMask
+    );
+
+
+  var data =
+    currentImg.addBands(
+      selectedLabels
+    );
+
+
+  var samples =
+    data.stratifiedSample({
+
+      numPoints:
+        samplesPerClass,
+
+      classBand:
+        'class',
+
+      region:
+        currentGeom,
+
+      scale:
+        30,
+
+      seed:
+        42,
+
+      geometries:
+        true,
+
+      tileScale:
+        4
+    });
+
+
+  // this split is ONLY for an internal prototype check
+  // final validation comes from human reviewed points
+
+  samples =
+    samples.randomColumn(
+      'internal_split',
+      42
+    );
+
+
+  currentTraining =
+    samples.filter(
+      ee.Filter.lt(
+        'internal_split',
+        0.80
+      )
+    );
+
+
+  var internalCheck =
+    samples.filter(
+      ee.Filter.gte(
+        'internal_split',
+        0.80
+      )
+    );
+
+
+  currentRF =
+    ee.Classifier
+      .smileRandomForest({
+        numberOfTrees: 100,
+        seed: 42
+      })
+      .train({
+
+        features:
+          currentTraining,
+
+        classProperty:
+          'class',
+
+        inputProperties:
+          currentImg.bandNames()
+      });
+
+
+  currentClassified =
+    currentImg
+      .classify(currentRF)
+      .clip(currentGeom);
+
+
+  if (rfLayer !== null) {
+
+    map.layers().remove(
+      rfLayer
+    );
+  }
+
+
+  rfLayer = addMapLayer(
+
+    currentClassified,
+
+    {
+      min: 0,
+      max: 8,
+      palette: classColors
+    },
+
+    'Random Forest LULC map',
+
+    true
+  );
+
+
+  // prototype agreement check
+  var internalTested =
+    internalCheck.classify(
+      currentRF
+    );
+
+
+  var internalMatrix =
+    internalTested.errorMatrix(
+      'class',
+      'classification',
+      ee.List(
+        selectedClassIds
+      ).sort()
+    );
+
+
+  internalMatrix
+    .accuracy()
+    .evaluate(function(acc) {
+
+      statusLabel.setValue(
+        'Map created.\n' +
+        'Internal reference agreement: ' +
+        (acc * 100).toFixed(1) +
+        '%\n\n' +
+        'Important: this is not the final independent accuracy result. Add human-reviewed validation points next.'
+      );
+    });
+
+
+  print(
+    'Training samples by class',
+    currentTraining.aggregate_histogram(
+      'class'
+    )
+  );
+
+
+  print(
+    'Internal reference check confusion matrix',
+    internalMatrix
+  );
+}
+
+
+// ---------------------------------------------------------
+// review mode
+// ---------------------------------------------------------
+
+function enterReviewMode() {
+
+  map.setOptions(
+    'SATELLITE'
+  );
+
+
+  if (rfLayer !== null) {
+    rfLayer.setShown(false);
+  }
+
+  if (suggestedLayer !== null) {
+    suggestedLayer.setShown(false);
+  }
+
+  if (confidenceLayer !== null) {
+    confidenceLayer.setShown(false);
+  }
+
+  if (embeddingLayer !== null) {
+    embeddingLayer.setShown(false);
+  }
+
+
+  statusLabel.setValue(
+    'Review mode active.\n' +
+    'The model and suggested-class layers are hidden.\n' +
+    'Use the satellite image or another independent reference source to decide the actual land-cover class.'
+  );
+}
+
+
+// ---------------------------------------------------------
+// map clicking
+// ---------------------------------------------------------
+
+map.onClick(
+  function(coords) {
+
+    lastClick = coords;
+
+
+    clickedLabel.setValue(
+      'Selected: ' +
+      coords.lat.toFixed(5) +
+      ', ' +
+      coords.lon.toFixed(5)
+    );
+
+
+    if (clickLayer !== null) {
+
+      map.layers().remove(
+        clickLayer
+      );
+    }
+
+
+    var point =
+      ee.Geometry.Point([
+        coords.lon,
+        coords.lat
+      ]);
+
+
+    clickLayer =
+      addMapLayer(
+        point,
+        {
+          color: 'yellow'
+        },
+        'Current review location',
+        true
+      );
+  }
+);
+
+
+// ---------------------------------------------------------
+// add human reviewed validation point
+// ---------------------------------------------------------
+
+function addValidationPoint() {
+
+  if (
+    lastClick === null
+  ) {
+
+    statusLabel.setValue(
+      'Click a location on the map first.'
+    );
+
+    return;
+  }
+
+
+  if (
+    currentTraining === null
+  ) {
+
+    statusLabel.setValue(
+      'Train the model before adding validation points.'
+    );
+
+    return;
+  }
+
+
+  var className =
+    reviewClassSelect.getValue();
+
+
+  var classId =
+    getClassIdFromName(
+      className
+    );
+
+
+  var point =
+    ee.Geometry.Point([
+      lastClick.lon,
+      lastClick.lat
+    ]);
+
+
+  // keep reviewed validation points away from
+  // automatic training samples
+
+  var bufferDistance =
+    Number(
+      validationBufferBox.getValue()
+    );
+
+
+  currentTraining
+    .filterBounds(
+      point.buffer(
+        bufferDistance
+      )
+    )
+    .size()
+    .evaluate(function(nearby) {
+
+      if (nearby > 0) {
+
+        statusLabel.setValue(
+          'That point is too close to an automatic training sample.\n' +
+          'Choose another location so validation stays more independent.'
+        );
+
+        return;
+      }
+
+
+      validationFeatures.push(
+
+        ee.Feature(
+          point,
+          {
+            class: classId,
+            class_name: className
+          }
+        )
+
+      );
+
+
+      updateValidationLayer();
+
+
+      statusLabel.setValue(
+        'Added validation point: ' +
+        className
+      );
+    });
+}
+
+
+// ---------------------------------------------------------
+// remove validation point
+// ---------------------------------------------------------
+
+function removeValidationPoint() {
+
+  if (
+    validationFeatures.length === 0
+  ) {
+    return;
+  }
+
+
+  validationFeatures.pop();
+
+  updateValidationLayer();
+}
+
+
+// ---------------------------------------------------------
+// calculate validation results
+// ---------------------------------------------------------
+
+function calculateValidation() {
+
+  if (
+    currentClassified === null
+  ) {
+
+    statusLabel.setValue(
+      'Create the classification first.'
+    );
+
+    return;
+  }
+
+
+  if (
+    validationFeatures.length < 2
+  ) {
+
+    statusLabel.setValue(
+      'Add more human-reviewed validation points first.'
+    );
+
+    return;
+  }
+
+
+  var validation =
+    ee.FeatureCollection(
+      validationFeatures
+    );
+
+
+  var tested =
+    currentClassified
+      .sampleRegions({
+
+        collection:
+          validation,
+
+        properties:
+          ['class'],
+
+        scale:
+          10,
+
+        geometries:
+          true,
+
+        tileScale:
+          4
+      });
+
+
+  var orderedClasses =
+    ee.List(
+      selectedClassIds
+    ).sort();
+
+
+  var matrix =
+    tested.errorMatrix(
+      'class',
+      'classification',
+      orderedClasses
+    );
+
+
+  print(
+    'Human reviewed validation confusion matrix',
+    matrix
+  );
+
+
+  var ids =
+    ee.List(
+      selectedClassIds
+    );
+
+
+  var metrics =
+    ee.FeatureCollection(
+
+      ids.map(
+        function(classId) {
+
+          classId =
+            ee.Number(
+              classId
+            );
+
+
+          var tp =
+            tested.filter(
+
+              ee.Filter.and(
+
+                ee.Filter.eq(
+                  'class',
+                  classId
+                ),
+
+                ee.Filter.eq(
+                  'classification',
+                  classId
+                )
+
+              )
+
+            ).size();
+
+
+          var fp =
+            tested.filter(
+
+              ee.Filter.and(
+
+                ee.Filter.neq(
+                  'class',
+                  classId
+                ),
+
+                ee.Filter.eq(
+                  'classification',
+                  classId
+                )
+
+              )
+
+            ).size();
+
+
+          var fn =
+            tested.filter(
+
+              ee.Filter.and(
+
+                ee.Filter.eq(
+                  'class',
+                  classId
+                ),
+
+                ee.Filter.neq(
+                  'classification',
+                  classId
+                )
+
+              )
+
+            ).size();
+
+
+          var precision =
+            ee.Number(
+              ee.Algorithms.If(
+
+                ee.Number(tp)
+                  .add(fp)
+                  .eq(0),
+
+                0,
+
+                ee.Number(tp)
+                  .divide(
+                    ee.Number(tp)
+                      .add(fp)
+                  )
+              )
+            );
+
+
+          var recall =
+            ee.Number(
+              ee.Algorithms.If(
+
+                ee.Number(tp)
+                  .add(fn)
+                  .eq(0),
+
+                0,
+
+                ee.Number(tp)
+                  .divide(
+                    ee.Number(tp)
+                      .add(fn)
+                  )
+              )
+            );
+
+
+          var f1 =
+            ee.Number(
+              ee.Algorithms.If(
+
+                precision
+                  .add(recall)
+                  .eq(0),
+
+                0,
+
+                precision
+                  .multiply(recall)
+                  .multiply(2)
+                  .divide(
+                    precision
+                      .add(recall)
+                  )
+              )
+            );
+
+
+          return ee.Feature(
+            null,
+            {
+
+              class_id:
+                classId,
+
+              class_name:
+                classNameDict.get(
+                  classId.format()
+                ),
+
+              precision:
+                precision,
+
+              recall:
+                recall,
+
+              f1:
+                f1,
+
+              reviewed_points:
+                tested
+                  .filter(
+                    ee.Filter.eq(
+                      'class',
+                      classId
+                    )
+                  )
+                  .size()
+            }
+          );
+
+        }
+      )
+    );
+
+
+  currentMetrics =
+    metrics;
+
+
+  var overall =
+    matrix.accuracy();
+
+
+  var macroF1 =
+    metrics.aggregate_mean(
+      'f1'
+    );
+
+
+  ee.Dictionary({
+    overall: overall,
+    macroF1: macroF1
+  })
+    .evaluate(function(result) {
+
+      statusLabel.setValue(
+
+        'Human-reviewed results\n' +
+
+        'Overall accuracy: ' +
+        (
+          result.overall * 100
+        ).toFixed(1) +
+        '%\n' +
+
+        'Macro F1: ' +
+        result.macroF1.toFixed(2) +
+        '\n\n' +
+
+        'See the Console for the confusion matrix and per-class results.'
+      );
+    });
+
+
+  print(
+    'Human reviewed per-class results',
+    metrics
+  );
+
+
+  print(
+    'Human reviewed macro F1',
+    macroF1
+  );
+}
+
+
+// ---------------------------------------------------------
+// exports
+// ---------------------------------------------------------
+
+function createExports() {
+
+  if (
+    currentClassified === null
+  ) {
+
+    statusLabel.setValue(
+      'Create a map before exporting.'
+    );
+
+    return;
+  }
+
+
+  var siteName =
+    siteSelect
+      .getValue()
+      .replace(/ /g, '_');
+
+
+  var year =
+    yearSelect.getValue();
+
+
+  var exportScale =
+    Number(
+      exportScaleSelect.getValue()
+    );
+
+
+  Export.image.toDrive({
+
+    image:
+      currentClassified.toByte(),
+
+    description:
+      siteName +
+      '_LULC_' +
+      year,
+
+    fileNamePrefix:
+      siteName +
+      '_LULC_' +
+      year,
+
+    region:
+      currentGeom,
+
+    scale:
+      exportScale,
+
+    maxPixels:
+      1e13,
+
+    fileFormat:
+      'GeoTIFF'
+  });
+
+
+  if (
+    validationFeatures.length > 0
+  ) {
+
+    Export.table.toDrive({
+
+      collection:
+        ee.FeatureCollection(
+          validationFeatures
+        ),
+
+      description:
+        siteName +
+        '_Reviewed_Validation_' +
+        year,
+
+      fileNamePrefix:
+        siteName +
+        '_Reviewed_Validation_' +
+        year,
+
+      fileFormat:
+        'CSV'
+    });
+  }
+
+
+  if (
+    currentMetrics !== null
+  ) {
+
+    Export.table.toDrive({
+
+      collection:
+        currentMetrics,
+
+      description:
+        siteName +
+        '_Accuracy_' +
+        year,
+
+      fileNamePrefix:
+        siteName +
+        '_Accuracy_' +
+        year,
+
+      fileFormat:
+        'CSV'
+    });
+  }
+
+
+  statusLabel.setValue(
+    'Export tasks created.\n' +
+    'Open the Tasks tab in the Earth Engine Code Editor to run them.'
+  );
+}
+
+
+// ---------------------------------------------------------
+// buttons
+// ---------------------------------------------------------
+
+var analyzeButton =
+  ui.Button({
+    label: 'Analyze Area',
+    onClick: analyzeArea
+  });
+
+
+panel.insert(
+  8,
+  analyzeButton
+);
+
+
+trainButton.onClick(
+  trainModel
+);
+
+
+reviewModeButton.onClick(
+  enterReviewMode
+);
+
+
+addValidationButton.onClick(
+  addValidationPoint
+);
+
+
+removeValidationButton.onClick(
+  removeValidationPoint
+);
+
+
+validateButton.onClick(
+  calculateValidation
+);
+
+
+exportButton.onClick(
+  createExports
+);
