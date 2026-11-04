@@ -1,0 +1,12 @@
+.cache/
+.runtime/
+.test-venv/
+node_modules/
+runs/
+__pycache__/
+*.pyc
+vertex-resources.json
+*credentials*
+*.tif
+*.jp2
+*.npy

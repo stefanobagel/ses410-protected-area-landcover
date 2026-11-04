@@ -1,0 +1,113 @@
+{
+  "version": "0.2c",
+  "files": {
+    "config.json": {
+      "sha256": "c9df2b448a3eac839e9c54bf0adbd6e656e6841bb45fb13288c666d2465b3803",
+      "bytes": 1370
+    },
+    "package.json": {
+      "sha256": "0701cf107369e9f4c52259472254af65401b678127871cbbded68a01bb7a7b13",
+      "bytes": 115
+    },
+    "requirements.txt": {
+      "sha256": "4aa3d1929e5b7b90b59c9caad46af0192ab3843fe223ad8ce70308794250718c",
+      "bytes": 326
+    },
+    "contracts.py": {
+      "sha256": "1d8817f090a9d58184d51be785e45d3ad02f371213f9f94dcb0478749da7b107",
+      "bytes": 4868
+    },
+    "teacher.py": {
+      "sha256": "b3ffcd71c5aa4b081c556115c8bab68424e2cbfb30cf75ef96ad429d987b1874",
+      "bytes": 6044
+    },
+    "imagery.py": {
+      "sha256": "8912ef6f520534be851fb864ad17aa20ce3f0896cad592bdf9fb540be99d9e74",
+      "bytes": 4686
+    },
+    "workflow.py": {
+      "sha256": "28e6cf4141f0059ad57b1675cbd5cba358398142e5ba43766d8390b4e2dbe75e",
+      "bytes": 12425
+    },
+    "ui.py": {
+      "sha256": "42b663011b4407fca07eb608a80ad2c2f83717e8f4c61c07ff6ca853973eaf71",
+      "bytes": 12411
+    },
+    "bootstrap.py": {
+      "sha256": "e8dc14af4da0451aea1913a1571ca881c77f48aee66334eafd1ddfd5f90a022f",
+      "bytes": 1553
+    },
+    "extension.js": {
+      "sha256": "b95b5a2b7c54f8aed4f0c5bd567a0b94cbbe33f37c695bda4efa8bf95e1a5ee5",
+      "bytes": 4692
+    },
+    "bridge.cjs": {
+      "sha256": "4b64fec98c56fb9d71bdb3e2ae36eae8b39788f9f5a3688115654ed5afdfe889",
+      "bytes": 4500
+    },
+    "vertex_server.py": {
+      "sha256": "ff27cc4f2d1a7f31958d0a386215ae7cf31b401d84d0c567b0a64beefd33bc0e",
+      "bytes": 1847
+    },
+    "deploy_vertex.py": {
+      "sha256": "c2ec53e31a73e624e7679cb9028719889037abab3f2db1ffca4ba56db022727e",
+      "bytes": 5686
+    },
+    "Dockerfile": {
+      "sha256": "880a3ed1c55f17589fb2af8795ff4c34e34768f4ae2d0b961e7d4b5c5415b69d",
+      "bytes": 557
+    },
+    "README.md": {
+      "sha256": "8c0ef959395d80db7fc2d999478fa6d042e614a0cb2ec73a35c1219774d58afb",
+      "bytes": 6716
+    },
+    "STATUS.md": {
+      "sha256": "373d0230e61d805397852acbc8a14fa8c68802a278ac14b0a7c2bd296c2432a9",
+      "bytes": 1997
+    },
+    ".gitignore": {
+      "sha256": "3ae24fc8f0c5f57ebb8325af1f140d38adb76ed28bfd1b3fc4266fb8697a2b6f",
+      "bytes": 123
+    },
+    "tools/build_package.py": {
+      "sha256": "1acd5b4d525643dacea0a5f743ebf07db448ad6101a9824d51c860adcef33a6e",
+      "bytes": 4083
+    },
+    "tools/verify_local.py": {
+      "sha256": "fa6eee8d1497cb798a343cd3290b0c3d9b711428332b534ca6cd277a5e226c95",
+      "bytes": 5463
+    },
+    "tests/test_contracts.py": {
+      "sha256": "ab3efa685fdf8074ba8989510a80b65c91a27daf58ef3a95b83a19d291e072e3",
+      "bytes": 7164
+    },
+    "tests/test_extension.cjs": {
+      "sha256": "dd38f15bf5878c0bde1679509cfca96af79e0d9c773ef9364a5bf7dc5168c6a7",
+      "bytes": 2360
+    },
+    "tests/test_graph.cjs": {
+      "sha256": "dce4df3edc8160707217c0cfb1b0d0e18fc0812586f789abb0cd8fa38a0130a3",
+      "bytes": 2564
+    },
+    "baseline/SES410_landcover_v0_2.js": {
+      "sha256": "8d7d778e0a2ec5f2c4592bf8585386edcfc87c5ae925687901a5415f5312fc00",
+      "bytes": 31168
+    },
+    "baseline/APP_LANDCOVER_v0_2.js": {
+      "sha256": "0e356220295c70af9289a08cc4d3cb289134eb3dc8404dc66ba746e7fd0c22ef",
+      "bytes": 18614
+    },
+    "gee/SES410_landcover_v0_2c.js": {
+      "sha256": "432bd44ab942e06a5f84a58b95cd7f1f9c5c6336d66f8a423f159775ca9cb819",
+      "bytes": 35871
+    },
+    "gee/APP_LANDCOVER_v0_2c.js": {
+      "sha256": "edbd86947ef7070d026af9ffbc8edcdd8301f3f421b087e2f88de39ae5c38f77",
+      "bytes": 18747
+    },
+    "SES410_v0_2c.ipynb": {
+      "sha256": "2c435b113c9a455e78256494cc6f347cde1902bf08de9edae16cd73b1d209e91",
+      "bytes": 96681
+    }
+  }
+}

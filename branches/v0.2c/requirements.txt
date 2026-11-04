@@ -1,0 +1,16 @@
+earthengine-api>=1.5,<2
+google-auth>=2.30,<3
+google-cloud-aiplatform>=1.70,<2
+google-cloud-build>=3.24,<4
+google-cloud-storage>=2.18,<4
+ipywidgets>=8,<9
+folium>=0.18,<1
+numpy>=1.26,<3
+pandas>=2.2,<3
+requests>=2.32,<3
+rasterio>=1.4,<2
+scikit-image>=0.24,<1
+torch>=2.5,<3
+torchvision>=0.20,<1
+fastapi>=0.115,<1
+uvicorn>=0.30,<1

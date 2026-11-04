@@ -1,0 +1,28 @@
+{
+  "version": "0.2c",
+  "parent_version": "0.2.0",
+  "project": "project-4516fd38-855a-44f4-a31",
+  "gee_repository": "users/arisol/protected-area-landcover-ses410-v0-2c",
+  "github_branch": "v0.2c",
+  "year": 2021,
+  "teacher_commit": "c8b9aa5d4acdd3e4f58eb7cbb28ac18bb12c985f",
+  "teacher_checkpoint": "sentinel2_swinb_si_rgb.pth",
+  "teacher_checkpoint_revision": "b1f8de04dacf9f9ed9640fe32484947710b47ede",
+  "teacher_license": "ODC-BY",
+  "sites": {
+    "Skeleton Coast Park": {
+      "key": "skeleton_coast", "name": "Skeleton Coast", "iso3": "NAM", "id": 885,
+      "crs": "EPSG:32733", "palette": ["419bdf", "d9c29c", "397d49"],
+      "names": {"0": "Water", "1": "Bare / sparse cover", "2": "Natural vegetation"},
+      "codes": [80,60,10,20,30,90,95,100], "mapping": [0,1,2,2,2,2,2,2],
+      "satlas_mapping": {"1":0,"2":null,"3":2,"4":2,"5":2,"6":null,"7":1,"8":null,"9":2,"10":2,"11":2}
+    },
+    "Salonga National Park": {
+      "key": "salonga", "name": "Salonga", "iso3": "COD", "id": 555697863,
+      "crs": "EPSG:32734", "palette": ["006400", "419bdf", "a6c96a"],
+      "names": {"0": "Tree cover / forest candidate", "1": "Water", "2": "Nonforest natural vegetation"},
+      "codes": [10,80,20,30,90], "mapping": [0,1,2,2,2],
+      "satlas_mapping": {"1":1,"2":null,"3":0,"4":2,"5":2,"6":null,"7":null,"8":null,"9":2,"10":null,"11":null}
+    }
+  }
+}
