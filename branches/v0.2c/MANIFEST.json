@@ -70,8 +70,8 @@
       "bytes": 123
     },
     "tools/build_package.py": {
-      "sha256": "1acd5b4d525643dacea0a5f743ebf07db448ad6101a9824d51c860adcef33a6e",
-      "bytes": 4083
+      "sha256": "a384e87d7089a10df7722e3ad52cfa6c6bc24d5f39369c101f7ce2a5623ca515",
+      "bytes": 4096
     },
     "tools/verify_local.py": {
       "sha256": "fa6eee8d1497cb798a343cd3290b0c3d9b711428332b534ca6cd277a5e226c95",
@@ -106,7 +106,7 @@
       "bytes": 18747
     },
     "SES410_v0_2c.ipynb": {
-      "sha256": "2c435b113c9a455e78256494cc6f347cde1902bf08de9edae16cd73b1d209e91",
+      "sha256": "11c816dc4752e78198e60a042b582fad589771f906bb33f571bdec00202b5fec",
       "bytes": 96681
     }
   }

@@ -54,7 +54,7 @@ install(root)
     (ROOT/'SES410_v0_2c.ipynb').write_text(json.dumps(notebook,indent=1),encoding='utf-8',newline='\n')
     files+=['SES410_v0_2c.ipynb']
     hashes={name:{'sha256':hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),'bytes':(ROOT/name).stat().st_size} for name in files}
-    (ROOT/'MANIFEST.json').write_text(json.dumps({'version':'0.2c','files':hashes},indent=2),encoding='utf-8')
+    (ROOT/'MANIFEST.json').write_text(json.dumps({'version':'0.2c','files':hashes},indent=2),encoding='utf-8',newline='\n')
     return files+['MANIFEST.json']
 
 if __name__=='__main__':print(json.dumps(build(),indent=2))
