@@ -268,6 +268,11 @@ class Workflow:
         from export_readback import download_completed,check_bundle
         paths,files=download_completed(self.credentials,self.result,self.task_status(),self.run_dir/'exports')
         checked=check_bundle(paths,CONFIG['sites'][settings['site']],self.run['run_id'])
+        import ee
+        from export_readback import measure_map_coverage
+        geometry=ee.deserializer.fromJSON(self.result['region']).getInfo()
+        checked['full_grid_map_coverage']=measure_map_coverage(paths['map'],geometry)
+        (self.run_dir/'study-geometry.geojson').write_text(json.dumps(geometry))
         checked['drive_files']=files
         (self.run_dir/'export-readback.json').write_text(json.dumps(checked,indent=2))
         self.run['export_readback_passed']=True

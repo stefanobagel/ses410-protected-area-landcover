@@ -94,6 +94,31 @@ def check_bundle(paths,site,run_id,version='0.2c'):
             'scope':'Export consistency and unweighted diagnostic/reference sample metrics; not independent accuracy certification',
             'files':[{'name':Path(f).name,'bytes':Path(f).stat().st_size,'sha256':hashlib.sha256(Path(f).read_bytes()).hexdigest()} for f in all_files]}
 
+def measure_map_coverage(filenames,geometry):
+    """Count mapped pixel centers inside the saved study geometry, in bounded stripes."""
+    import numpy as np
+    import rasterio
+    from rasterio.features import geometry_mask
+    from rasterio.warp import transform_geom
+    from rasterio.windows import Window,transform as window_transform
+    maps=filenames if isinstance(filenames,list) else [filenames]
+    inside_count=valid_count=0
+    for filename in maps:
+        with rasterio.open(filename) as raster:
+            projected=transform_geom('EPSG:4326',raster.crs,geometry)
+            for row in range(0,raster.height,256):
+                window=Window(0,row,raster.width,min(256,raster.height-row))
+                data=raster.read(1,window=window)
+                inside=geometry_mask([projected],out_shape=data.shape,transform=window_transform(window,raster.transform),invert=True,all_touched=False)
+                inside_count+=int(inside.sum())
+                valid_count+=int((inside & np.isin(data,[0,1,2])).sum())
+    require(inside_count>0,'Study geometry has no pixel centers in exported maps.')
+    return {'inside_pixel_centers':inside_count,'mapped_pixel_centers':valid_count,
+            'unmapped_pixel_centers':inside_count-valid_count,'mapped_fraction':valid_count/inside_count,
+            'method':'Full exported grid; GDAL pixel-center rasterization of saved WGS84 study geometry, projected to each raster CRS; polygon holes excluded',
+            'limit':'Map availability only, not class correctness or independent accuracy; boundary conventions can differ from Earth Engine clipping'}
+
+
 def download_completed(credentials,result,task_states,destination):
     from google.auth.transport.requests import AuthorizedSession
     require(len(task_states)==6 and all(x.get('state')=='COMPLETED' for x in task_states),'All six export tasks must complete before readback.')

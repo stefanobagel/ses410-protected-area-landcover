@@ -9,6 +9,11 @@ on:
       - 'branches/v0.2c/runtime.py'
       - 'branches/v0.2c/config.json'
       - 'branches/v0.2c/tools/linux_service_smoke.py'
+      - 'branches/v0.2c/**/*.py'
+      - 'branches/v0.2c/**/*.js'
+      - 'branches/v0.2c/**/*.cjs'
+      - 'branches/v0.2c/requirements.txt'
+      - 'branches/v0.2c/package.json'
   workflow_dispatch:
 permissions:
   contents: read

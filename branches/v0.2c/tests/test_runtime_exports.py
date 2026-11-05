@@ -40,6 +40,18 @@ class RuntimeAndReview(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'earlier run'):f.review_training('x','accept',0,'TEST','test',1.0,'different')
 
 class ExportTracking(unittest.TestCase):
+    def test_coverage_excludes_holes_and_reports_missing_pixel(self):
+        import numpy as np
+        import rasterio
+        from rasterio.transform import from_origin
+        from export_readback import measure_map_coverage
+        geometry={'type':'Polygon','coordinates':[[[0,0],[4,0],[4,4],[0,4],[0,0]],[[1,1],[1,3],[3,3],[3,1],[1,1]]]}
+        with tempfile.TemporaryDirectory(dir=TEMP) as tmp:
+            path=Path(tmp)/'coverage.tif';data=np.ones((4,4),dtype='uint8');data[0,0]=255;data[1:3,1:3]=255
+            with rasterio.open(path,'w',driver='GTiff',height=4,width=4,count=1,dtype='uint8',crs='EPSG:4326',transform=from_origin(0,4,1,1),nodata=255) as dst:dst.write(data,1)
+            report=measure_map_coverage(path,geometry)
+            self.assertEqual(report['inside_pixel_centers'],12);self.assertEqual(report['mapped_pixel_centers'],11)
+            self.assertEqual(report['unmapped_pixel_centers'],1);self.assertAlmostEqual(report['mapped_fraction'],11/12)
     def test_request_id_is_not_used_as_server_id(self):
         with tempfile.TemporaryDirectory(dir=TEMP) as tmp:
             f=Workflow(tmp);settings={'site':'Skeleton Coast Park'};f.begin(settings);f.revision=fingerprint(settings)
