@@ -255,6 +255,10 @@ class Workflow:
             states=ee.data.getTaskStatus(ids) if ids else []
         if self.run:
             self.run['export_status'] = states
+            observed=[s['batch_eecu_usage_seconds'] for s in states if s.get('batch_eecu_usage_seconds') is not None]
+            self.run['observed_batch_eecu_seconds']=sum(observed) if observed else None
+            self.run['EECU_hours']=sum(observed)/3600 if observed else None
+            self.run['EECU_scope']='Observed export batch usage only; partial while tasks run; excludes interactive requests and dollar charges'
             self.save()
         return states
 

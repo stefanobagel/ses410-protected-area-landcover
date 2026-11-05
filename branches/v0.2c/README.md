@@ -83,8 +83,7 @@ Requested target: `users/arisol/protected-area-landcover-ses410-v0-2c`.
 `gee/` contains a generated companion core/UI for that separate repository.
 Those scripts retain baseline Code Editor modes; the integrated Satlas UI is
 the notebook above. Selecting a Cloud project does **not** create a GEE script
-repository. Repository creation/upload requires an authenticated GEE session;
-The user verified arisol, created this repository, and both scripts have been
+repository. The user verified arisol, created this repository, and both scripts have been
 uploaded/read back at commit7a3ce86ce896030f99012123340c2940611de20d. See
 `STATUS.md` for execution limits. Do not overwrite the original repository.
 

@@ -38,12 +38,12 @@
       "bytes": 1989
     },
     "workflow.py": {
-      "sha256": "20cb945ba39932e429f388b0ccdd88f2a32b697431193ca9aa6856e6840c1093",
-      "bytes": 16868
+      "sha256": "986298dbe1d9fbaa2863a8bf408175844e84b4bdc9bc5a96200bdb053c9908d7",
+      "bytes": 17295
     },
     "ui.py": {
-      "sha256": "48a36d21da4201b080dfe7b4ae309cc786f8083c15fa8f3ba5aa1b5485b69530",
-      "bytes": 13971
+      "sha256": "0864a345ed8c417b70539492edd9e4418139b80e78c482767db23938550fbbd4",
+      "bytes": 14215
     },
     "bootstrap.py": {
       "sha256": "883b0dd471ee980b28d928fda40bd0e7163e100b9d77b0e35b324425295b2982",
@@ -70,8 +70,8 @@
       "bytes": 568
     },
     "README.md": {
-      "sha256": "e0cbd0198024c7ad35e354f0c3cc7a0cbd79ab876fc8a3c07002feda86c47fce",
-      "bytes": 7536
+      "sha256": "bfdde7509a9b80dab2dbd0933b140b3dea834e968e0130a47369995d6dda626d",
+      "bytes": 7470
     },
     "STATUS.md": {
       "sha256": "c257b078257aa9fa5ad5cf088ea32e59834c569a58643e5549d778b1c5c948da",
@@ -114,8 +114,8 @@
       "bytes": 4933
     },
     "ci/v02c-service-smoke.yml": {
-      "sha256": "f1178ba3df6d2f37d63617a223572d8b6ff23169fc0b584687a5f0a985ac7651",
-      "bytes": 1254
+      "sha256": "43154b62932292020f59416737e4f28ac0cd26faf497e4f637a1bcb4b0c7d43a",
+      "bytes": 2075
     },
     "baseline/SES410_landcover_v0_2.js": {
       "sha256": "8d7d778e0a2ec5f2c4592bf8585386edcfc87c5ae925687901a5415f5312fc00",
@@ -134,8 +134,8 @@
       "bytes": 18747
     },
     "SES410_v0_2c.ipynb": {
-      "sha256": "d8db6ab06debd480d21740b479f46f15fa49b843ef63b109bcf90b6c1ca4c65d",
-      "bytes": 118548
+      "sha256": "7eeaaaed4b6f4f5b4010aca96dcba4b6305bdeb4cee64be2918577f9d3c47f68",
+      "bytes": 119336
     }
   }
 }

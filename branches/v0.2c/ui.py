@@ -77,7 +77,9 @@ def launch():
                 status.value='<b>Stopped:</b> '+html.escape(str(exc))
                 progress('Stopped: '+str(exc))
             finally:
-                progress('Action elapsed: %.1f seconds; EECU-hours unobserved.'%(time.perf_counter()-started))
+                usage=(flow.run or {}).get('EECU_hours')
+                cost_note='Export batch usage: %.4f EECU-hours observed; partial while tasks run; dollar charges unobserved.'%usage if usage is not None else 'EECU-hours unobserved for this action.'
+                progress('Action elapsed: %.1f seconds. '%(time.perf_counter()-started)+cost_note)
                 busy['value']=False;control_state()
         return wrapped
     def show_review():

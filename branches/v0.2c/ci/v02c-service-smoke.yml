@@ -30,5 +30,20 @@ jobs:
           python -m pip install --quiet 'numpy>=1.26,<3' requests 'rasterio>=1.4,<2' scikit-image
       - name: Load trained head and infer real TCI for both study areas
         run: python -u branches/v0.2c/tools/linux_service_smoke.py
+      - name: Execute the embedded notebook bootstrap and instantiate its interface
+        run: |
+          sudo mkdir -p /content
+          sudo chown "$(id -u):$(id -g)" /content
+          python -u - <<'PY'
+          import json
+          from pathlib import Path
+          notebook=json.loads(Path('branches/v0.2c/SES410_v0_2c.ipynb').read_text())
+          namespace={}
+          for cell in notebook['cells']:
+              if cell['cell_type']=='code':exec(''.join(cell['source']),namespace)
+          print('SES410_NOTEBOOK_BOOTSTRAP_PASSED: embedded extraction, Python/npm installation, UI instantiation; no Google authentication or browser widget clicks')
+          PY
+      - name: Verify the extracted package contracts and graph interchange
+        run: python -B /content/SES410_v02c/tools/verify_local.py
       # Results are in logs and the job summary. No artifact/cache storage or
       # Google secret, OIDC trust, paid runner, GPU or cloud resource is provisioned.
