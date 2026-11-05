@@ -26,4 +26,9 @@ def install(root):
         os.environ['PATH']=str(target/('node-'+version+'-linux-x64')/'bin')+os.pathsep+os.environ['PATH']
         npm=shutil.which('npm')
     subprocess.check_call([npm,'install','--ignore-scripts','--no-audit','--no-fund'],cwd=root)
+    try:
+        from google.colab import output
+        output.enable_custom_widget_manager()
+    except ImportError:
+        pass
     print('v0.2c dependencies ready. Use the controls below; Google authentication happens when you connect.')

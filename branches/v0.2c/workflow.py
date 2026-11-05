@@ -35,8 +35,13 @@ class Workflow:
             auth.authenticate_user()
         except ImportError:
             pass
-        credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform',
-                                                  'https://www.googleapis.com/auth/earthengine'])
+        try:
+            credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform',
+                                                       'https://www.googleapis.com/auth/earthengine'])
+        except google.auth.exceptions.DefaultCredentialsError:
+            # Supported equivalent local EE tests can use the official EE OAuth store.
+            # These credentials are not copied into code or supplied by the user in chat.
+            credentials=ee.data.get_persistent_credentials()
         credentials.refresh(Request())
         ee.Initialize(credentials=credentials,project=project)
         # Force a real permission/API request before displaying Connected.
@@ -84,6 +89,10 @@ class Workflow:
 
     def prepare(self, settings):
         self.begin(settings)
+        if settings['backend']!='Vertex AI':
+            from runtime import environment
+            self.run['environment']=environment(require_gpu=True)
+            self.save()
         site = settings['site']
         self.progress('Preparing fresh development frames; original blind references are not loaded.')
         data = self.bridge('prepare',site,settings)['frames']
@@ -96,7 +105,9 @@ class Workflow:
             self.teacher = VertexTeacher(settings['endpoint'],self.credentials)
         elif self.teacher is None or type(self.teacher).__name__ != 'SatlasTeacher':
             self.progress('Loading the complete pretrained Satlas head; first use downloads weights.')
-            self.teacher = SatlasTeacher()
+            self.teacher = SatlasTeacher(require_gpu=True)
+        if hasattr(self.teacher,'runtime'):
+            self.run['teacher_environment']=self.teacher.runtime
         mapping = CONFIG['sites'][site]['satlas_mapping']
         try:
             for group_name in ['training','holdout']:

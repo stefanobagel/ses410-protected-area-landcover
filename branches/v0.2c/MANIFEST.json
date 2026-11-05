@@ -18,24 +18,28 @@
       "bytes": 4868
     },
     "teacher.py": {
-      "sha256": "b3ffcd71c5aa4b081c556115c8bab68424e2cbfb30cf75ef96ad429d987b1874",
-      "bytes": 6044
+      "sha256": "cd483637bf320db888259e0b62ed9191c0d35731a359ad7f09a3300fa1e626ef",
+      "bytes": 7241
     },
     "imagery.py": {
-      "sha256": "8912ef6f520534be851fb864ad17aa20ce3f0896cad592bdf9fb540be99d9e74",
-      "bytes": 4686
+      "sha256": "fb045a409d3a695445fa77adedf5d6bc555e2f762c3decc5497d5bcb13bb5368",
+      "bytes": 5462
+    },
+    "runtime.py": {
+      "sha256": "7b372c7ed9a921c71cb966e4bb736c09ad4171ca367e451b7fd29c4dcca1167c",
+      "bytes": 1164
     },
     "workflow.py": {
-      "sha256": "28e6cf4141f0059ad57b1675cbd5cba358398142e5ba43766d8390b4e2dbe75e",
-      "bytes": 12425
+      "sha256": "0466bd2f588662007502ca09815013540e15c5f65982f0a96d8153ea9f3fc9ff",
+      "bytes": 13052
     },
     "ui.py": {
       "sha256": "42b663011b4407fca07eb608a80ad2c2f83717e8f4c61c07ff6ca853973eaf71",
       "bytes": 12411
     },
     "bootstrap.py": {
-      "sha256": "e8dc14af4da0451aea1913a1571ca881c77f48aee66334eafd1ddfd5f90a022f",
-      "bytes": 1553
+      "sha256": "883b0dd471ee980b28d928fda40bd0e7163e100b9d77b0e35b324425295b2982",
+      "bytes": 1685
     },
     "extension.js": {
       "sha256": "b95b5a2b7c54f8aed4f0c5bd567a0b94cbbe33f37c695bda4efa8bf95e1a5ee5",
@@ -50,12 +54,12 @@
       "bytes": 1847
     },
     "deploy_vertex.py": {
-      "sha256": "c2ec53e31a73e624e7679cb9028719889037abab3f2db1ffca4ba56db022727e",
-      "bytes": 5686
+      "sha256": "fa2b908f1316120ba199da12f01f15a6049b2690f7f5acb594959a8c44ba9458",
+      "bytes": 5699
     },
     "Dockerfile": {
-      "sha256": "880a3ed1c55f17589fb2af8795ff4c34e34768f4ae2d0b961e7d4b5c5415b69d",
-      "bytes": 557
+      "sha256": "2e2a563f950855b1b65ca84bd69f01dffe4db4f370d7ca1e14ac47c450edae9f",
+      "bytes": 568
     },
     "README.md": {
       "sha256": "8c0ef959395d80db7fc2d999478fa6d042e614a0cb2ec73a35c1219774d58afb",
@@ -70,8 +74,8 @@
       "bytes": 123
     },
     "tools/build_package.py": {
-      "sha256": "a384e87d7089a10df7722e3ad52cfa6c6bc24d5f39369c101f7ce2a5623ca515",
-      "bytes": 4096
+      "sha256": "4f9c9e75deeb5faafee192605ed7130ef6c52918efd17f2ffd0cd2a9452b58fa",
+      "bytes": 4188
     },
     "tools/verify_local.py": {
       "sha256": "fa6eee8d1497cb798a343cd3290b0c3d9b711428332b534ca6cd277a5e226c95",
@@ -88,6 +92,14 @@
     "tests/test_graph.cjs": {
       "sha256": "dce4df3edc8160707217c0cfb1b0d0e18fc0812586f789abb0cd8fa38a0130a3",
       "bytes": 2564
+    },
+    "tools/linux_service_smoke.py": {
+      "sha256": "0347bb8bdd199cf0fd9b1222974fd952c86abbbf9e6ce8d33b8fcfefa97076fb",
+      "bytes": 3983
+    },
+    "ci/v02c-service-smoke.yml": {
+      "sha256": "f1178ba3df6d2f37d63617a223572d8b6ff23169fc0b584687a5f0a985ac7651",
+      "bytes": 1254
     },
     "baseline/SES410_landcover_v0_2.js": {
       "sha256": "8d7d778e0a2ec5f2c4592bf8585386edcfc87c5ae925687901a5415f5312fc00",
@@ -106,8 +118,8 @@
       "bytes": 18747
     },
     "SES410_v0_2c.ipynb": {
-      "sha256": "11c816dc4752e78198e60a042b582fad589771f906bb33f571bdec00202b5fec",
-      "bytes": 96681
+      "sha256": "9fce871e0f218d85a7ff61724c493846607c6c449ab909f55873a3c63d82e961",
+      "bytes": 102461
     }
   }
 }

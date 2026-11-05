@@ -44,7 +44,7 @@ def deploy(credentials, region='us-central1', progress=print):
     except NotFound:bucket=client.create_bucket(bucket,location=region)
     content=io.BytesIO()
     with tarfile.open(fileobj=content,mode='w:gz') as tar:
-        for name in ['Dockerfile','config.json','teacher.py','vertex_server.py']:
+        for name in ['Dockerfile','config.json','teacher.py','runtime.py','vertex_server.py']:
             tar.add(ROOT/name,arcname=name)
     stamp=str(int(time.time()))
     blob=bucket.blob('builds/'+stamp+'.tar.gz');blob.upload_from_string(content.getvalue(),content_type='application/gzip')

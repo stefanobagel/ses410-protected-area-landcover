@@ -7,10 +7,10 @@ from pathlib import Path
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py',
+SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py','runtime.py',
          'workflow.py','ui.py','bootstrap.py','extension.js','bridge.cjs','vertex_server.py','deploy_vertex.py',
          'Dockerfile','README.md','STATUS.md','.gitignore','tools/build_package.py','tools/verify_local.py',
-         'tests/test_contracts.py','tests/test_extension.cjs','tests/test_graph.cjs',
+         'tests/test_contracts.py','tests/test_extension.cjs','tests/test_graph.cjs','tools/linux_service_smoke.py','ci/v02c-service-smoke.yml',
          'baseline/SES410_landcover_v0_2.js','baseline/APP_LANDCOVER_v0_2.js']
 
 def build():
@@ -44,7 +44,7 @@ sys.path.insert(0, str(root))
 from bootstrap import install
 install(root)
 '''
-    notebook={'nbformat':4,'nbformat_minor':5,'metadata':{'colab':{'name':'SES410_v0_2c.ipynb'},
+    notebook={'nbformat':4,'nbformat_minor':5,'metadata':{'accelerator':'GPU','colab':{'name':'SES410_v0_2c.ipynb'},
               'kernelspec':{'display_name':'Python 3','language':'python','name':'python3'}},
               'cells':[{'cell_type':'markdown','metadata':{},'source':['# SES410 Hammer v0.2c\n','Experimental c-branch of v0.2. Select a GPU runtime, then **Runtime → Run all**.\n',
               'The interface below keeps mapping, teacher proposals, training review and exports on one page. Sign in through Connect Google. Download run/review archives before disconnecting.\n',

@@ -26,6 +26,30 @@ def tci_url(product_id, mgrs):
         raise ValueError('Expected one original L1C TCI object; found '+str(len(names))+'. No approximate fallback.')
     return 'https://storage.googleapis.com/gcp-public-data-sentinel-2/'+quote(names[0],safe='/')
 
+def read_tci_chip(url,lon,lat,crs):
+    import numpy as np
+    import rasterio
+    from rasterio import Affine
+    from rasterio.vrt import WarpedVRT
+    from rasterio.warp import transform
+    xs,ys=transform('EPSG:4326',crs,[lon],[lat])
+    affine=Affine(10,0,xs[0]-2565,0,-10,ys[0]+2565)
+    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR',CPL_VSIL_CURL_ALLOWED_EXTENSIONS='.jp2'):
+        with rasterio.open(url) as src:
+            with WarpedVRT(src,crs=crs,transform=affine,width=512,height=512,
+                           resampling=rasterio.enums.Resampling.nearest) as vrt:
+                rgb=vrt.read([1,2,3]).transpose(1,2,0)
+                valid=vrt.dataset_mask()>0
+    if rgb.dtype!=np.uint8 or rgb.shape!=(512,512,3) or not valid[256,256] or valid.mean()<0.99:
+        raise ValueError('Missing scene context or invalid TCI pixel.')
+    px,py=affine*(256.5,256.5)
+    lons,lats=transform(crs,'EPSG:4326',[px],[py])
+    if abs(lons[0]-lon)>1e-7 or abs(lats[0]-lat)>1e-7:
+        raise ValueError('Image query pixel/geographic coordinate mismatch.')
+    return rgb,{'affine':list(affine),'crs':crs,'query_pixel':[256,256],
+                'query_longitude':lons[0],'query_latitude':lats[0],
+                'valid_context_fraction':float(valid.mean()),'chip_sha256':hashlib.sha256(rgb.tobytes()).hexdigest()}
+
 def fetch_chip(feature, site, cache):
     import ee
     import numpy as np
@@ -57,14 +81,8 @@ def fetch_chip(feature, site, cache):
             npy, js = cache/(key+'.npy'), cache/(key+'.json')
             if npy.exists() and js.exists(): return np.load(npy),json.loads(js.read_text())
             url = tci_url(meta['PRODUCT_ID'],meta['MGRS_TILE'])
-            with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR',CPL_VSIL_CURL_ALLOWED_EXTENSIONS='.jp2'):
-                with rasterio.open(url) as src:
-                    with WarpedVRT(src,crs=site['crs'],transform=affine,width=512,height=512,
-                                   resampling=rasterio.enums.Resampling.nearest) as vrt:
-                        rgb = vrt.read([1,2,3]).transpose(1,2,0)
-                        valid = vrt.dataset_mask() > 0
-            if rgb.dtype != np.uint8 or rgb.shape != (512,512,3) or not valid[256,256] or valid.mean() < 0.99:
-                raise ValueError('Missing scene context or invalid TCI pixel.')
+            rgb,georef=read_tci_chip(url,lon,lat,site['crs'])
+            meta.update(georef)
             meta.update(tci_url=url,crs=site['crs'],affine=list(affine),query_pixel=[256,256],
                         chip_sha256=hashlib.sha256(rgb.tobytes()).hexdigest(),
                         preprocessing='Original ESA L1C TCI RGB / 255; nearest warp to v0.2 10m grid',

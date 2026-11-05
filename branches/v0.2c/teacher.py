@@ -24,9 +24,11 @@ def download(url, path):
     os.replace(temporary,path)
 
 class SatlasTeacher:
-    def __init__(self, cache=None, device=None):
+    def __init__(self, cache=None, device=None, require_gpu=False):
         import requests
         import torch
+        from runtime import environment
+        self.runtime=environment(torch,require_gpu=require_gpu)
         self.cache = Path(cache or os.environ.get('SES410_MODEL_CACHE', ROOT/'.cache'))
         self.cache.mkdir(parents=True, exist_ok=True)
         source = self.cache/('satlas-'+COMMIT)
@@ -73,19 +75,30 @@ class SatlasTeacher:
         self.model.load_state_dict(state, strict=True)
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device).eval()
+        self.runtime['model_device']=str(next(self.model.parameters()).device)
+        if require_gpu and not self.runtime['model_device'].startswith('cuda'):
+            raise RuntimeError('Teacher weights are not on the requested CUDA device.')
 
     def predict(self, rgb, row=256, col=256):
         import numpy as np
         import torch
+        import time
         if rgb.shape != (512,512,3) or rgb.dtype != np.uint8:
             raise ValueError('Satlas expects a 512 x 512 uint8 ESA L1C TCI RGB chip.')
         if not (0 <= row < 512 and 0 <= col < 512):
             raise ValueError('Query pixel outside chip.')
         tensor = torch.from_numpy(rgb.transpose(2,0,1).copy()).float().to(self.device)/255.0
+        started=time.perf_counter()
         with torch.inference_mode():
             outputs, _ = self.model([tensor], selected_task='land_cover')
-            values = outputs[self.head][0][:,row,col].detach().cpu().tolist()
-        return {'probabilities':values,'identity':self.identity}
+            raster=outputs[self.head][0]
+            if tuple(raster.shape)!=(12,512,512):
+                raise ValueError('Unexpected trained land-cover output shape: '+str(tuple(raster.shape)))
+            values = raster[:,row,col].detach().cpu().tolist()
+        if not np.isfinite(values).all() or min(values)<0 or abs(sum(values)-1)>0.001:
+            raise ValueError('Invalid teacher probabilities at query pixel.')
+        return {'probabilities':values,'identity':self.identity,'output_shape':list(raster.shape),
+                'input_shape':list(tensor.shape),'device':str(tensor.device),'elapsed_s':time.perf_counter()-started}
 
 class VertexTeacher:
     def __init__(self, endpoint, credentials):
@@ -109,6 +122,9 @@ class VertexTeacher:
         result = response.json()['predictions'][0]
         if result['identity']['source_commit'] != COMMIT:
             raise ValueError('Unexpected Vertex teacher source identity.')
+        if (result['identity'].get('revision')!=CONFIG['teacher_checkpoint_revision'] or
+                result['identity'].get('checkpoint')!=CONFIG['teacher_checkpoint']):
+            raise ValueError('Vertex endpoint checkpoint differs from the pinned Colab teacher.')
         if self.identity and self.identity != result['identity']:
             raise ValueError('Teacher identity changed within this run.')
         self.identity = result['identity']
