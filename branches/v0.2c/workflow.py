@@ -142,6 +142,28 @@ class Workflow:
             (self.run_dir/(name+'.geojson')).write_text(json.dumps({'type':'FeatureCollection','features':getattr(self,name)},indent=2))
         self.save()
 
+    def review_training(self,sample_id,decision,class_code,reviewer,evidence,elapsed_s,expected_run_id):
+        if not self.run or self.run['run_id']!=expected_run_id:
+            raise ValueError('Review belongs to an earlier run; reopen current training review.')
+        if decision not in ['accept','correct','reject'] or not reviewer.strip() or not evidence.strip():
+            raise ValueError('A review decision, reviewer and evidence note are required.')
+        selected=[f for f in self.training if f['properties']['sample_id']==sample_id]
+        if len(selected)!=1:raise ValueError('Review sample identity is missing or ambiguous.')
+        p=selected[0]['properties']
+        if decision=='accept' and p.get('class') is None:raise ValueError('An unmapped class needs an explicit correction or rejection.')
+        if decision=='correct' and (type(class_code) is not int or class_code not in [0,1,2]):raise ValueError('Invalid reviewed class.')
+        before={k:p.get(k) for k in ['class','review_decision','reviewer','review_evidence','reviewed']}
+        if decision=='correct':p['class']=class_code
+        p.update(reviewed=1,review_decision=decision,reviewer=reviewer.strip(),review_evidence=evidence.strip(),review_elapsed_s=elapsed_s)
+        event={'event_id':uuid.uuid4().hex,'utc':dt.datetime.now(dt.timezone.utc).isoformat(),
+               'run_id':expected_run_id,'sample_id':sample_id,'before':before,
+               'after':{k:p.get(k) for k in ['class','review_decision','reviewer','review_evidence','reviewed']},
+               'elapsed_s':elapsed_s,'scope':'Training review; not independent validation or automatic scientific approval'}
+        directory=self.run_dir/'review-events';directory.mkdir(exist_ok=True)
+        with (directory/(event['event_id']+'.json')).open('x',encoding='utf-8') as stream:json.dump(event,stream,indent=2)
+        self.invalidate();self.save_labels()
+        return event
+
     def fit(self, settings, mode):
         if mode == 'Satlas-assisted diagnostic':
             if not hasattr(self,'prepared_revision') or self.prepared_revision != fingerprint(settings):
@@ -197,12 +219,15 @@ class Workflow:
                 factory = ee.batch.Export.image.toDrive if descriptor['kind']=='image' else ee.batch.Export.table.toDrive
                 task = factory(**params)
                 # Persist task ID before starting; recover/check rather than duplicate a partially submitted job.
-                task.id = ee.data.newTaskId()[0]
-                task._request_id = task.id
+                request_id=ee.data.newTaskId()[0]
+                task._request_id=request_id
                 self.tasks.append(task)
-                self.run.setdefault('export_tasks',[]).append({'id':task.id,'description':params['description']})
+                entry={'id':None,'request_id':request_id,'description':params['description']}
+                self.run.setdefault('export_tasks',[]).append(entry)
                 self.save()
                 task.start()
+                entry.update(id=task.id,name=task.name)
+                self.save()
             return self.task_status()
         except Exception:
             self.run['export_submission_status'] = 'partial_or_failed_check_task_ids_before_retry'
@@ -214,6 +239,20 @@ class Workflow:
         import ee
         ids = [x['id'] for x in (self.run or {}).get('export_tasks',[]) if x['id']]
         states = ee.data.getTaskStatus(ids) if ids else []
+        entries=(self.run or {}).get('export_tasks',[])
+        if entries and (len(ids)!=len(entries) or any(x.get('state')=='UNKNOWN' for x in states)):
+            # Request IDs are idempotency keys, not necessarily server task IDs.
+            # Recover by this run's exact unique descriptions, without resubmitting.
+            operations=ee.data.listOperations()
+            for entry in entries:
+                matches=[o for o in operations if o.get('metadata',{}).get('description')==entry['description']]
+                if len(matches)>1:raise RuntimeError('Ambiguous export operation; preserve all jobs and inspect before retrying.')
+                if matches:
+                    name=matches[0]['name']
+                    if entry.get('id') and entry['id']!=name.split('/')[-1]:entry['previous_client_request_id']=entry['id']
+                    entry.update(id=name.split('/')[-1],name=name)
+            ids=[x['id'] for x in entries if x.get('id')]
+            states=ee.data.getTaskStatus(ids) if ids else []
         if self.run:
             self.run['export_status'] = states
             self.save()

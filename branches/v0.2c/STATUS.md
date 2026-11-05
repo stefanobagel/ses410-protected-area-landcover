@@ -1,4 +1,48 @@
-# v0.2c implementation status — November4,2026
+# v0.2c status — updated November5,2026
+
+## Current live-service qualification
+
+This section supersedes the November4 no-authentication/no-inference statements
+below, which describe the original build. Original v0.2 and frozen references
+remain unchanged; v0.2c is experimental, separate from v0.2b.
+
+- Official Google OAuth verified the authorized account/project with a real EE
+  request. Project registration is REGISTERED_NOT_COMMERCIALLY. No API, billing
+  or IAM changes were made.
+- Both parks completed small(12 train/20 holdout) and default(120/200) WorldCover
+  RF diagnostics through v0.2c. Defaults:83.0% Skeleton Coast,97.5% Salonga product
+  agreement, not independent accuracy. Missing class support withholds macro F1.
+- Actual PNG tiles for both maps were retrieved/decoded. Browser rendering is
+  still a separate pending check.
+- Twelve default exports were submitted. Skeleton Coast's six completed files
+  were downloaded and passed metric/coordinate/raster/grid/NoData/provenance
+  checks. Salonga completion/readback remains in progress at this revision.
+- Free hosted Linux CPU CI strictly loaded the complete pinned Satlas checkpoint
+  and its trained head. Real clear TCI queries for both parks returned valid
+ 12x512x512 probabilities. Verified checkpoint SHA256 is in config.json.
+  CPU service execution is not Colab GPU qualification or label accuracy.
+- After the user verified arisol and created the separate GEE repository, both
+  companion scripts were uploaded/read back byte-for-byte at commit
+ 7a3ce86ce896030f99012123340c2940611de20d. Full Satlas UI remains the notebook.
+
+Live failures fixed: UI mode overwrote the backend execution enum; request IDs
+were mistaken for server task IDs; per_class download suffix was truncated.
+Existing jobs recover by unique descriptions without resubmission. Stale review
+views are guarded, review history is immutable, and missing CUDA stops explicitly.
+
+Teacher qualification is still open: the clear Skeleton Coast probe was predicted
+as crop(about55.5%), outside its legend; the Salonga probe was predicted as
+water(about92.4%). These are model proposals, not accepted human labels. Never
+force unmapped classes or drop difficult holdout points to obtain a fit.
+
+The user selected free checks only. No metered TinyFish automation or Vertex
+resources were started. For the remaining GPU probe, use an available free T4
+Colab runtime, Run all, Connect Google, then Verify GPU teacher. A credential-free,
+source-hashed receipt is saved to SES410_v02c on Drive. This does not buy compute
+units, fit RF or deploy an endpoint. Complete Colab UI/teacher-assisted fitting
+and optional Vertex qualification remain pending.
+
+## Historical original-build status — November4
 
 User-authorized experimental c-branch of v0.2, not a replacement release or team/
 mentor scientific approval. Main project baseline and frozen evidence remain intact.

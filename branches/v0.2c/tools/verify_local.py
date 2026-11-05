@@ -25,7 +25,7 @@ def verify():
         output=re.sub(r'\x1b\[[0-9;]*[A-Za-z]','',p.stdout+p.stderr)
         if p.returncode:raise RuntimeError(output)
         return output
-    check('20 Python contracts and UI instantiation',lambda:command([sys.executable,'-B','-m','unittest','discover','-s','tests','-v']))
+    check('Python contracts and UI instantiation',lambda:command([sys.executable,'-B','-m','unittest','discover','-s','tests','-v']))
     check('6 actual v0.2c preflight callback contracts with EE doubles',lambda:command(['node','tests/test_extension.cjs']))
     def syntax():
         for name in files:
@@ -82,9 +82,10 @@ def verify():
         if not all(p in params for p in required):raise ValueError('Unsupported Vertex SDK upload signature.')
         return {'cloud_build_source':str(build.source),'vertex_upload_signature':'required parameters present','external_calls':0}
     check('Vertex/Cloud Build SDK construction',cloud_sdk)
-    receipt={'software_version':'0.2c','results':results,'all_passed':all(x['passed'] for x in results),
+    receipt={'software_version':'0.2c','scope':'Only this local verification command; dated live-service receipts report separate real execution',
+             'results':results,'all_passed':all(x['passed'] for x in results),
              'live_GEE_fits':0,'live_teacher_inferences':0,'Vertex_endpoints_deployed':0,'EECU_hours':None,
-             'limits':['No Google authentication in build chat','Windows application-control blocked native PyTorch import; no bypass',
+             'limits':['This command does not authenticate to Google or infer with PyTorch','Windows native PyTorch execution is excluded; hosted Linux is used for real inference',
                        'API mocks and parser checks do not qualify cloud execution, model accuracy or scientific independence']}
     path=ROOT/'.cache/local-verification.json';path.parent.mkdir(exist_ok=True);path.write_text(json.dumps(receipt,indent=2))
     print(json.dumps(receipt,indent=2))

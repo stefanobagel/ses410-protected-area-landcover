@@ -37,6 +37,7 @@ def launch():
     refresh = w.Button(description='Refresh export status')
     archive = w.Button(description='Download run + review')
     readback=w.Button(description='Verify/download exports',disabled=True)
+    gpu_smoke=w.Button(description='Verify GPU teacher',layout=w.Layout(width='180px'))
     status = w.HTML('<b>Connect to Google to begin.</b>')
     busy = {'value':False}
     def settings():
@@ -57,7 +58,7 @@ def launch():
         with review: clear_output()
         status.value='Settings changed. Prepare a new run; previous outputs cannot be exported.'
     def control_state():
-        for button in [connect,prepare,fit,refresh,archive]:button.disabled=busy['value']
+        for button in [connect,prepare,fit,refresh,archive,gpu_smoke]:button.disabled=busy['value']
         for control in [project,site,mode,backend,endpoint,count,holdout,exclusion,confidence,training,validation,design,protocol,attest]:
             control.disabled=busy['value']
         current=flow.result is not None and flow.revision==fingerprint(settings())
@@ -83,6 +84,7 @@ def launch():
         with review:
             clear_output()
             if not hasattr(flow,'training'): return
+            review_run_id=flow.run['run_id'];review_settings=fingerprint(settings())
             choices=[(f['properties']['sample_id'],i) for i,f in enumerate(flow.training)]
             choose=w.Dropdown(options=choices,description='Train point:',layout=w.Layout(width='650px'))
             details=w.Output()
@@ -109,16 +111,16 @@ def launch():
                         display(im)
                     display(HTML('<small>Review the red cross pixel. Teacher probability is not calibrated accuracy. Human evidence may be needed for uncertain classes.</small>'))
             def save_review(_):
+                if busy['value'] or not flow.run or flow.run['run_id']!=review_run_id or fingerprint(settings())!=review_settings:
+                    status.value='This review view is stale or a task is running. Reopen the current training review.';return
                 if not reviewer.value.strip() or not evidence.value.strip():
                     status.value='Reviewer and evidence note are required.';return
                 f=flow.training[choose.value];p=f['properties']
                 if decision.value=='accept' and p.get('class') is None:
                     status.value='Unmapped class: correct with evidence or reject.';return
-                if decision.value=='correct':p['class']=human.value
-                p.update(reviewed=1,review_decision=decision.value,reviewer=reviewer.value.strip(),review_evidence=evidence.value.strip(),
-                         review_elapsed_s=time.perf_counter()-review_started['time'])
-                flow.invalidate();export.disabled=True;coverage.disabled=True
-                flow.save_labels();inspect()
+                flow.review_training(p['sample_id'],decision.value,human.value,reviewer.value,evidence.value,
+                                     time.perf_counter()-review_started['time'],review_run_id)
+                export.disabled=True;coverage.disabled=True;readback.disabled=True;inspect()
                 status.value='Training review saved. Generate a new RF result to reflect it.'
             choose.observe(inspect,names='value');save.on_click(save_review)
             display(w.VBox([choose,details,w.HBox([decision,human]),reviewer,evidence,save]));inspect()
@@ -162,8 +164,19 @@ def launch():
         checked=flow.readback(settings())
         with results:print(json.dumps(checked,indent=2))
         status.value='Completed exports downloaded and checked against metrics, coordinates, grid and provenance. Download the run archive to retain them.'
+    @action
+    def do_gpu_smoke():
+        if flow.credentials is None:raise ValueError('Connect Google first.')
+        from tools.linux_service_smoke import main
+        from drive_reports import upload_gpu_receipt
+        progress('Checking actual CUDA/model use and two real clear TCI inputs. No RF fit or paid cloud endpoint is started.')
+        report=main(device='cuda',require_gpu=True)
+        saved=upload_gpu_receipt(flow.credentials,report)
+        with results:print(json.dumps({'GPU_teacher_receipt':report,'saved_in_Drive':saved},indent=2))
+        status.value='Actual GPU teacher check completed; credential-free receipt saved in SES410_v02c on Drive.'
     for button,fn in [(connect,do_connect),(prepare,do_prepare),(fit,do_fit),(coverage,do_coverage),(export,do_export),(refresh,do_refresh),(archive,do_archive)]:button.on_click(fn)
     readback.on_click(do_readback)
+    gpu_smoke.on_click(do_gpu_smoke)
     for control in [project,site,mode,backend,endpoint,count,holdout,exclusion,confidence,training,validation,design,protocol,attest]:control.observe(invalidate,names='value')
     analyst=w.Accordion(children=[w.VBox([backend,endpoint,w.HBox([count,holdout,exclusion]),confidence,training,validation,design,protocol,attest])],selected_index=None)
     analyst.set_title(0,'Analyst settings / accepted references')
@@ -188,5 +201,5 @@ def launch():
     cloud_tab=w.VBox([w.HTML('<p>Optional. Colab mode needs no hosted endpoint. Vertex deployment requires enabled APIs, billing and existing build permissions. One n1-standard-4 replica runs until you stop it. Setup failures do not change IAM or enable billing.</p>'),deploy_button,undeploy_button,cloud])
     tabs=w.Tab(children=[w.VBox([results,map_output]),review,log,cloud_tab]);tabs.set_title(0,'Map and results');tabs.set_title(1,'Training review');tabs.set_title(2,'Progress');tabs.set_title(3,'Optional Vertex')
     display(w.VBox([w.HTML('<h2>SES410 Hammer v0.2c</h2><p>Experimental c-branch of v0.2. Year 2021 · 64 AlphaEarth predictors · 200-tree RF · 10 m map.</p>'),
-                    project,connect,site,mode,analyst,w.HBox([prepare,fit]),status,tabs,w.HBox([coverage,export,refresh,readback,archive])]))
+                    project,connect,site,mode,analyst,w.HBox([prepare,fit,gpu_smoke]),status,tabs,w.HBox([coverage,export,refresh,readback,archive])]))
     return flow

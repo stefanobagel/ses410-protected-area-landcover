@@ -7,10 +7,10 @@ from pathlib import Path
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py','runtime.py','export_readback.py',
+SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py','runtime.py','export_readback.py','drive_reports.py',
          'workflow.py','ui.py','bootstrap.py','extension.js','bridge.cjs','vertex_server.py','deploy_vertex.py',
-         'Dockerfile','README.md','STATUS.md','.gitignore','tools/build_package.py','tools/verify_local.py',
-         'tests/test_contracts.py','tests/test_extension.cjs','tests/test_graph.cjs','tools/linux_service_smoke.py','ci/v02c-service-smoke.yml',
+         'Dockerfile','README.md','STATUS.md','.gitignore','tools/__init__.py','tools/build_package.py','tools/verify_local.py',
+         'tests/test_contracts.py','tests/test_runtime_exports.py','tests/test_extension.cjs','tests/test_graph.cjs','tools/linux_service_smoke.py','ci/v02c-service-smoke.yml',
          'baseline/SES410_landcover_v0_2.js','baseline/APP_LANDCOVER_v0_2.js']
 
 def build():
@@ -36,6 +36,10 @@ payload = base64.b64decode({base64.b64encode(payload).decode()!r})
 assert hashlib.sha256(payload).hexdigest() == {digest!r}, "Package hash mismatch"
 root = Path('/content/SES410_v02c')
 root.mkdir(parents=True, exist_ok=True)
+for module_name, module in list(sys.modules.items()):
+    origin = getattr(module, '__file__', None)
+    if origin and Path(origin).resolve().is_relative_to(root.resolve()):
+        del sys.modules[module_name]
 with zipfile.ZipFile(io.BytesIO(payload)) as archive:
     for name in archive.namelist():
         assert (root/name).resolve().is_relative_to(root.resolve()), "Unsafe package path"

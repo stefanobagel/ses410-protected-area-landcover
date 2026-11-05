@@ -37,7 +37,7 @@ def find_tci(mgrs,selected_product=None):
         except Exception as exc:failures.append(str(exc))
     raise RuntimeError('Exact TCI lookup failed: '+'; '.join(failures))
 
-def main():
+def main(device='cpu',require_gpu=False):
     import torch
     import numpy as np
     from teacher import SatlasTeacher
@@ -45,14 +45,15 @@ def main():
     from contracts import CLASSES
     start=time.perf_counter();torch.set_num_threads(2)
     receipt={'started_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'git_commit':os.environ.get('GITHUB_SHA'),
-             'scope':'Real public-image teacher inference only; not a Colab GPU or authenticated Earth Engine test',
+             'scope':'Real public-image teacher inference only; no RF fit, reference qualification or full UI certification',
              'point_selection':'Centers of valid historical v0.2 output masks; class values not used. No frozen/reviewed reference point loaded.',
              'cloud_screening':'Fixed clear 2021 acquisitions selected with authenticated GEE: scene cloud0%, QA60 query pixel0. Context/annual class truth still unqualified; public TCI processing identity recorded.',
              'Google_authentication':False,'RF_fits':0,'exports':0,'Vertex_deployments':0,'EECU_hours':None,
-             'runner_billing':'Standard ubuntu-24.04 CPU runner in a public repository; no cache/artifact upload',
+             'runner_billing':'User-selected Colab GPU runtime; this code does not buy compute units' if require_gpu else 'Standard ubuntu-24.04 CPU runner in a public repository; no cache/artifact upload',
+             'runtime_source_hashes':{n:hashlib.sha256((ROOT/n).read_bytes()).hexdigest() for n in ['teacher.py','imagery.py','runtime.py','config.json']},
              'sites':[]}
     try:
-        teacher=SatlasTeacher(device='cpu')
+        teacher=SatlasTeacher(device=device,require_gpu=require_gpu)
         receipt.update(environment=teacher.runtime,teacher_identity=teacher.identity,
                        checkpoint_load_elapsed_s=time.perf_counter()-start)
         for point in POINTS:
@@ -75,5 +76,6 @@ def main():
         if os.environ.get('GITHUB_STEP_SUMMARY'):
             with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
                 f.write('## v0.2c real public-service smoke\n\n```json\n'+json.dumps(receipt,indent=2)+'\n```\n')
+    return receipt
 
 if __name__=='__main__':main()

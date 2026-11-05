@@ -100,7 +100,9 @@ def download_completed(credentials,result,task_states,destination):
     session=AuthorizedSession(credentials);destination=Path(destination);destination.mkdir(parents=True,exist_ok=True)
     paths={};downloaded=[]
     for descriptor in result['exports']:
-        params=descriptor['params'];kind='map' if descriptor['kind']=='image' else params['description'].rsplit('_',1)[-1]
+        params=descriptor['params']
+        kind='map' if descriptor['kind']=='image' else next((k for k in ['predictions','metrics','per_class','confusion','provenance'] if params['description'].endswith('_'+k)),None)
+        require(kind is not None,'Unknown export type in completed run.')
         # The inherited summary task uses the suffix metrics.
         prefix=params.get('fileNamePrefix',params['description'])
         safe=prefix.replace('\\','\\\\').replace("'","\\'")

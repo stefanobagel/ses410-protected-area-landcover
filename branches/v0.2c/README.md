@@ -11,6 +11,9 @@ a different RF implementation or import the alternative branch's spatial design.
 1. Open the notebook, choose a GPU runtime if available, then **Runtime → Run all**.
 2. In the interface, click **Connect Google**. Sign in with the authorized account.
    Project is prefilled as `project-4516fd38-855a-44f4-a31`.
+   **Verify GPU teacher** performs a bounded two-image CUDA check and saves its
+   source-hashed runtime receipt in the existing SES410_v02c Drive folder. Use an
+   available free T4 runtime; do not buy compute units for the free-only test.
 3. Choose a park and mode. For Satlas, click **Prepare Satlas labels**. Initial use
    downloads the complete trained teacher. Google sign-in popups are required;
    subsequent mapping, review and export controls remain on this notebook page.
@@ -18,7 +21,9 @@ a different RF implementation or import the alternative branch's spatial design.
    proposals. Corrections/rejections require a reviewer and evidence note.
 5. Click **Generate RF map**. View map/metrics, check coarse coverage, start six
    Drive exports and refresh their status here. Download the run/review archive
-   before disconnecting: Colab storage is temporary.
+   before disconnecting: Colab storage is temporary. **Verify/download exports**
+   requires all six jobs to finish, downloads their files and reconciles raster,
+   coordinate, metric and provenance contents. Submission is not completion.
 
 Defaults retain 2021, both v0.2 legends, 64 AlphaEarth bands, 200 trees, seed410,
 40 candidates/class, 200 diagnostic holdout locations and a provisional100m
@@ -50,6 +55,9 @@ the existing two legends. Unrepresented land covers remain unmapped. A missing
 holdout label stops the experiment; holdout points are never silently discarded.
 Teacher confidence only flags review; it is not calibrated accuracy or approval.
 The RF still reads AlphaEarth64D in Earth Engine, not RGB.
+Exact selected ESA products are preferred. If a mirror has only another processing
+baseline, it must match acquisition, platform, tile and orbit; both product IDs and
+the processing difference are recorded. No reflectance-stretch fallback is used.
 
 ## Optional Vertex AI, on the same page
 
@@ -76,7 +84,9 @@ Requested target: `users/arisol/protected-area-landcover-ses410-v0-2c`.
 Those scripts retain baseline Code Editor modes; the integrated Satlas UI is
 the notebook above. Selecting a Cloud project does **not** create a GEE script
 repository. Repository creation/upload requires an authenticated GEE session;
-see `STATUS.md` for actual remote state. Do not overwrite the original repository.
+The user verified arisol, created this repository, and both scripts have been
+uploaded/read back at commit7a3ce86ce896030f99012123340c2940611de20d. See
+`STATUS.md` for execution limits. Do not overwrite the original repository.
 
 ## Verification and limits
 
