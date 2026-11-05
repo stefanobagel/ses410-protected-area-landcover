@@ -18,9 +18,10 @@ and frozen evidence remain unchanged. This branch is not fully qualified end to 
   79.8314010459 Salonga,88.4392932911 total. Interactive usage and dollar invoice
   unobserved. Noncommercial compute still consumes quota; no paid resources started.
 - Free hosted Linux CPU tests strictly loaded the complete pinned Satlas checkpoint
-  and trained head, inferred real clear TCI for both parks, and verified finite
-  12x512x512 probabilities plus image/model/georeferencing identities. The embedded
-  notebook bootstrap, dependency installation and interface instantiation also
+  and trained head, inferred real clear TCI for both parks, and verified
+  12x512x512 output shape, finite normalized query probabilities, and image/model/
+  georeferencing identities. The embedded notebook bootstrap, dependency
+  installation and interface instantiation also
   passed on Linux. CPU tests are not Colab GPU or browser operation qualification.
 - Clear teacher probes:Skeleton Coast crop(~55.5%, unmapped in its legend),
   Salonga water(~92.4%). These need review and are not confirmed class truth.
