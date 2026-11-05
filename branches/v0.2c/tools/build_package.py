@@ -7,7 +7,7 @@ from pathlib import Path
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py','runtime.py',
+SOURCES=['config.json','package.json','requirements.txt','contracts.py','teacher.py','imagery.py','runtime.py','export_readback.py',
          'workflow.py','ui.py','bootstrap.py','extension.js','bridge.cjs','vertex_server.py','deploy_vertex.py',
          'Dockerfile','README.md','STATUS.md','.gitignore','tools/build_package.py','tools/verify_local.py',
          'tests/test_contracts.py','tests/test_extension.cjs','tests/test_graph.cjs','tools/linux_service_smoke.py','ci/v02c-service-smoke.yml',

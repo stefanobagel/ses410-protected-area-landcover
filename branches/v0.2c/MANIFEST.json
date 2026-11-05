@@ -2,8 +2,8 @@
   "version": "0.2c",
   "files": {
     "config.json": {
-      "sha256": "c9df2b448a3eac839e9c54bf0adbd6e656e6841bb45fb13288c666d2465b3803",
-      "bytes": 1370
+      "sha256": "743c52e9e2e905054c1dcc52f8c4b98d62b391f4c9957f696499b366c5090606",
+      "bytes": 1469
     },
     "package.json": {
       "sha256": "0701cf107369e9f4c52259472254af65401b678127871cbbded68a01bb7a7b13",
@@ -18,24 +18,28 @@
       "bytes": 4868
     },
     "teacher.py": {
-      "sha256": "cd483637bf320db888259e0b62ed9191c0d35731a359ad7f09a3300fa1e626ef",
-      "bytes": 7241
+      "sha256": "d0c3331d450790e9e0fc8a96b86c930c353d52236a32317e59bb8dd6d099673a",
+      "bytes": 7537
     },
     "imagery.py": {
-      "sha256": "fb045a409d3a695445fa77adedf5d6bc555e2f762c3decc5497d5bcb13bb5368",
-      "bytes": 5462
+      "sha256": "ab75be488f2ceef3072dc57267c2eb8f99fc0a9a2327f84d9a6d99cf2fcd7f71",
+      "bytes": 6796
     },
     "runtime.py": {
       "sha256": "7b372c7ed9a921c71cb966e4bb736c09ad4171ca367e451b7fd29c4dcca1167c",
       "bytes": 1164
     },
+    "export_readback.py": {
+      "sha256": "df6131e300dd331b9442906128ea1979dd39a1b0efc37df2f74ddf0b732e70ff",
+      "bytes": 9293
+    },
     "workflow.py": {
-      "sha256": "0466bd2f588662007502ca09815013540e15c5f65982f0a96d8153ea9f3fc9ff",
-      "bytes": 13052
+      "sha256": "9dae4bbc9380e494c3dcb8c09b667ab6ae837268196370de4e177490fc6afb76",
+      "bytes": 13765
     },
     "ui.py": {
-      "sha256": "42b663011b4407fca07eb608a80ad2c2f83717e8f4c61c07ff6ca853973eaf71",
-      "bytes": 12411
+      "sha256": "f9c3e90f39c8dce324b1b49a6f8e62c9ed8acd8932f1d622f66447d3500ea548",
+      "bytes": 12930
     },
     "bootstrap.py": {
       "sha256": "883b0dd471ee980b28d928fda40bd0e7163e100b9d77b0e35b324425295b2982",
@@ -46,8 +50,8 @@
       "bytes": 4692
     },
     "bridge.cjs": {
-      "sha256": "4b64fec98c56fb9d71bdb3e2ae36eae8b39788f9f5a3688115654ed5afdfe889",
-      "bytes": 4500
+      "sha256": "a7c86e4ed8a26542729b3f91ce651f36665ec6cd83a858df36be7cd827607b43",
+      "bytes": 4777
     },
     "vertex_server.py": {
       "sha256": "ff27cc4f2d1a7f31958d0a386215ae7cf31b401d84d0c567b0a64beefd33bc0e",
@@ -74,8 +78,8 @@
       "bytes": 123
     },
     "tools/build_package.py": {
-      "sha256": "4f9c9e75deeb5faafee192605ed7130ef6c52918efd17f2ffd0cd2a9452b58fa",
-      "bytes": 4188
+      "sha256": "a4243ba4d0f47677edabcf0398b8b7fb7fa1945ffa8c98828c5e2d160d1b364b",
+      "bytes": 4209
     },
     "tools/verify_local.py": {
       "sha256": "fa6eee8d1497cb798a343cd3290b0c3d9b711428332b534ca6cd277a5e226c95",
@@ -94,8 +98,8 @@
       "bytes": 2564
     },
     "tools/linux_service_smoke.py": {
-      "sha256": "0347bb8bdd199cf0fd9b1222974fd952c86abbbf9e6ce8d33b8fcfefa97076fb",
-      "bytes": 3983
+      "sha256": "bc3b902e09616b70f891ba0f078e1f6f61bea9dd07b41f9bc900eab30df16d6e",
+      "bytes": 4602
     },
     "ci/v02c-service-smoke.yml": {
       "sha256": "f1178ba3df6d2f37d63617a223572d8b6ff23169fc0b584687a5f0a985ac7651",
@@ -118,8 +122,8 @@
       "bytes": 18747
     },
     "SES410_v0_2c.ipynb": {
-      "sha256": "9fce871e0f218d85a7ff61724c493846607c6c449ab909f55873a3c63d82e961",
-      "bytes": 102461
+      "sha256": "b789943eb9cb47f57b35fdc20ff73326e3d9a03c057d0b1192a238438d3c1a49",
+      "bytes": 109017
     }
   }
 }

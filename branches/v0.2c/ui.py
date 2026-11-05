@@ -36,6 +36,7 @@ def launch():
     export = w.Button(description='Start six Drive exports',disabled=True)
     refresh = w.Button(description='Refresh export status')
     archive = w.Button(description='Download run + review')
+    readback=w.Button(description='Verify/download exports',disabled=True)
     status = w.HTML('<b>Connect to Google to begin.</b>')
     busy = {'value':False}
     def settings():
@@ -61,6 +62,7 @@ def launch():
             control.disabled=busy['value']
         current=flow.result is not None and flow.revision==fingerprint(settings())
         export.disabled=busy['value'] or not current or bool((flow.run or {}).get('exports_submitted'))
+        readback.disabled=busy['value'] or not current or not bool((flow.run or {}).get('exports_submitted'))
         coverage.disabled=busy['value'] or not current
     def action(fn):
         def wrapped(_):
@@ -155,7 +157,13 @@ def launch():
             from google.colab import files
             files.download(target)
         except ImportError:progress('Saved '+target)
+    @action
+    def do_readback():
+        checked=flow.readback(settings())
+        with results:print(json.dumps(checked,indent=2))
+        status.value='Completed exports downloaded and checked against metrics, coordinates, grid and provenance. Download the run archive to retain them.'
     for button,fn in [(connect,do_connect),(prepare,do_prepare),(fit,do_fit),(coverage,do_coverage),(export,do_export),(refresh,do_refresh),(archive,do_archive)]:button.on_click(fn)
+    readback.on_click(do_readback)
     for control in [project,site,mode,backend,endpoint,count,holdout,exclusion,confidence,training,validation,design,protocol,attest]:control.observe(invalidate,names='value')
     analyst=w.Accordion(children=[w.VBox([backend,endpoint,w.HBox([count,holdout,exclusion]),confidence,training,validation,design,protocol,attest])],selected_index=None)
     analyst.set_title(0,'Analyst settings / accepted references')
@@ -180,5 +188,5 @@ def launch():
     cloud_tab=w.VBox([w.HTML('<p>Optional. Colab mode needs no hosted endpoint. Vertex deployment requires enabled APIs, billing and existing build permissions. One n1-standard-4 replica runs until you stop it. Setup failures do not change IAM or enable billing.</p>'),deploy_button,undeploy_button,cloud])
     tabs=w.Tab(children=[w.VBox([results,map_output]),review,log,cloud_tab]);tabs.set_title(0,'Map and results');tabs.set_title(1,'Training review');tabs.set_title(2,'Progress');tabs.set_title(3,'Optional Vertex')
     display(w.VBox([w.HTML('<h2>SES410 Hammer v0.2c</h2><p>Experimental c-branch of v0.2. Year 2021 · 64 AlphaEarth predictors · 200-tree RF · 10 m map.</p>'),
-                    project,connect,site,mode,analyst,w.HBox([prepare,fit]),status,tabs,w.HBox([coverage,export,refresh,archive])]))
+                    project,connect,site,mode,analyst,w.HBox([prepare,fit]),status,tabs,w.HBox([coverage,export,refresh,readback,archive])]))
     return flow

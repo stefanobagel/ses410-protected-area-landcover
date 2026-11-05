@@ -60,6 +60,10 @@ function main(job) {
           region:ee.Serializer.toJSON(result.region),exports:descriptors,logs});
       } catch(e) {finish({error:e.message,logs});}
     }};
+  // UI evidence-mode text must never replace the backend's execution enum.
+  if (job.action === 'baseline') cfg.mode = 'smoke_test';
+  if (job.action === 'prepare') cfg.mode = 'candidate_preparation';
+  process.once('uncaughtException',err=>finish({error:err.message,logs}));
   if (!job.token || !job.project) {finish({error:'Google authentication and project ID required.'});return;}
   try {
     ee.data.setAuthToken('', 'Bearer', job.token, 3600, [], undefined, false);

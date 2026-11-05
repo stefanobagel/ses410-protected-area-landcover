@@ -173,8 +173,9 @@ class Workflow:
             self.revision = fingerprint(settings)
             (self.run_dir/'completed-result.json').write_text(json.dumps(result,indent=2))
             return result
-        except Exception:
+        except Exception as exc:
             self.run['status'] = 'fit_or_evaluation_failed'
+            self.run['last_error']=str(exc)
             raise
         finally:
             self.save()
@@ -217,6 +218,18 @@ class Workflow:
             self.run['export_status'] = states
             self.save()
         return states
+
+    def readback(self,settings):
+        if not self.result or self.revision!=fingerprint(settings):
+            raise ValueError('Readback requires the current completed run.')
+        from export_readback import download_completed,check_bundle
+        paths,files=download_completed(self.credentials,self.result,self.task_status(),self.run_dir/'exports')
+        checked=check_bundle(paths,CONFIG['sites'][settings['site']],self.run['run_id'])
+        checked['drive_files']=files
+        (self.run_dir/'export-readback.json').write_text(json.dumps(checked,indent=2))
+        self.run['export_readback_passed']=True
+        self.save()
+        return checked
 
     def coverage(self, settings):
         import ee

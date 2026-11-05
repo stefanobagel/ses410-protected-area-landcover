@@ -26,6 +26,25 @@ def tci_url(product_id, mgrs):
         raise ValueError('Expected one original L1C TCI object; found '+str(len(names))+'. No approximate fallback.')
     return 'https://storage.googleapis.com/gcp-public-data-sentinel-2/'+quote(names[0],safe='/')
 
+def resolve_tci(product_id,mgrs):
+    """Keep acquisition/platform/tile/orbit fixed if the public mirror has an older processing baseline."""
+    import requests
+    try:
+        return tci_url(product_id,mgrs),product_id,'Exact selected product'
+    except ValueError:
+        parts=product_id.split('_')
+        prefix=f'tiles/{mgrs[:2]}/{mgrs[2]}/{mgrs[3:]}/'+parts[0]+'_MSIL1C_'+parts[2]
+        r=requests.get('https://storage.googleapis.com/storage/v1/b/gcp-public-data-sentinel-2/o',
+                      params={'prefix':prefix,'delimiter':'/','maxResults':100,'fields':'prefixes'},timeout=60)
+        r.raise_for_status()
+        choices=[]
+        for item in r.json().get('prefixes',[]):
+            candidate=item.rstrip('/').split('/')[-1].removesuffix('.SAFE');p=candidate.split('_')
+            if len(p)==7 and all(p[i]==parts[i] for i in [0,1,2,4,5]):choices.append(candidate)
+        if not choices:raise ValueError('No exact or same-acquisition/tile/orbit public ESA TCI product.')
+        actual=sorted(choices)[-1]
+        return tci_url(actual,mgrs),actual,'Same acquisition/platform/tile/orbit; public mirror uses a different processing baseline. GEE selection metadata is recorded separately.'
+
 def read_tci_chip(url,lon,lat,crs):
     import numpy as np
     import rasterio
@@ -80,10 +99,11 @@ def fetch_chip(feature, site, cache):
             key = hashlib.sha256(json.dumps([meta['PRODUCT_ID'],site['crs'],list(affine)]).encode()).hexdigest()
             npy, js = cache/(key+'.npy'), cache/(key+'.json')
             if npy.exists() and js.exists(): return np.load(npy),json.loads(js.read_text())
-            url = tci_url(meta['PRODUCT_ID'],meta['MGRS_TILE'])
+            url,actual_product,match_note = resolve_tci(meta['PRODUCT_ID'],meta['MGRS_TILE'])
             rgb,georef=read_tci_chip(url,lon,lat,site['crs'])
             meta.update(georef)
-            meta.update(tci_url=url,crs=site['crs'],affine=list(affine),query_pixel=[256,256],
+            meta.update(tci_url=url,tci_product_id=actual_product,tci_product_match=match_note,
+                        crs=site['crs'],affine=list(affine),query_pixel=[256,256],
                         chip_sha256=hashlib.sha256(rgb.tobytes()).hexdigest(),
                         preprocessing='Original ESA L1C TCI RGB / 255; nearest warp to v0.2 10m grid',
                         temporal_note='One 2021 observation; annual class representativeness unqualified',

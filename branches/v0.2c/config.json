@@ -8,6 +8,7 @@
   "teacher_commit": "c8b9aa5d4acdd3e4f58eb7cbb28ac18bb12c985f",
   "teacher_checkpoint": "sentinel2_swinb_si_rgb.pth",
   "teacher_checkpoint_revision": "b1f8de04dacf9f9ed9640fe32484947710b47ede",
+  "teacher_checkpoint_sha256": "94c075a155fc489947dc091305586675649c99c7d8567fe2195792b58875511b",
   "teacher_license": "ODC-BY",
   "sites": {
     "Skeleton Coast Park": {

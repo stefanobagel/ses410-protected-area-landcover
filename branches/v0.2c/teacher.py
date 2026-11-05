@@ -55,6 +55,8 @@ class SatlasTeacher:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         if identity.get('sha256') and identity['sha256'] != digest:
             raise ValueError('Cached trained checkpoint hash changed.')
+        if CONFIG.get('teacher_checkpoint_sha256') and digest!=CONFIG['teacher_checkpoint_sha256']:
+            raise ValueError('Downloaded teacher checkpoint does not match the verified pinned hash.')
         identity.update(sha256=digest, source_commit=COMMIT, license='ODC-BY')
         identity_path.write_text(json.dumps(identity,indent=2))
         self.identity = identity
@@ -123,7 +125,8 @@ class VertexTeacher:
         if result['identity']['source_commit'] != COMMIT:
             raise ValueError('Unexpected Vertex teacher source identity.')
         if (result['identity'].get('revision')!=CONFIG['teacher_checkpoint_revision'] or
-                result['identity'].get('checkpoint')!=CONFIG['teacher_checkpoint']):
+                result['identity'].get('checkpoint')!=CONFIG['teacher_checkpoint'] or
+                result['identity'].get('sha256')!=CONFIG.get('teacher_checkpoint_sha256')):
             raise ValueError('Vertex endpoint checkpoint differs from the pinned Colab teacher.')
         if self.identity and self.identity != result['identity']:
             raise ValueError('Teacher identity changed within this run.')
