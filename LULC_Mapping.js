@@ -1,16 +1,28 @@
 // =====================================================================
-// Keystone Protected Area LULC Tool, v3 (human-reviewed labels)
+// Keystone Protected Area LULC Tool, v3.2 (human-reviewed labels)
 // Paste into the Earth Engine Code Editor and click Run.
 // NOT executed by the author: verify, then report any console error.
 //
+// Changes from v3.1: step 2 now asks "how many NEW points do you want to add?" and builds
+//  a queue on top of the labels already loaded (new random draw each time, balanced across
+//  surface types, never repeats an already-labeled point).
+// Changes from v3 (in v3.1):
+//  - Per-site review zoom and automatic Sentinel-2 (Cloud Score+) for sites
+//    where the basemap has no high-resolution imagery (Salonga)
+//  - "Load saved labels" button in step 1: load a saved label asset, skip
+//    steps 2-3, and jump straight to step 4 (Train)
+//  - Load report shows which classes have enough training labels
+//  - Fixed two input checks that could never trigger (isNaN on a boolean)
+//
 // Workflow (use the numbered buttons at the top of the panel):
 //  1 Setup  : pick park + year, check boundary and embedding coverage
+//             (also: load previously saved labels and skip to step 4)
 //  2 Queue  : build a review queue of random points spread across the
 //             embedding's natural surface types (unsupervised strata, NOT labels)
 //  3 Label  : look at each point, choose a class, save or flag as uncertain
 //  4 Train  : Random Forest on the 64 embedding bands at TRAINING points
 //  5 Check  : accuracy on VALIDATION points only
-//  6 Save   : exports, plus save / load labels so teammates can share work
+//  6 Save   : exports, plus save labels so teammates can share work
 //
 // Training vs validation is decided by CODE, from a spatial block grid, with a
 // guard band along block edges. A point can never be both, and the two sets are
@@ -35,12 +47,16 @@ var NUM_TREES = 100;            // hyperparameters still TBR
 var SEED = 42;
 var TARGET_MACRO_F1 = 0.80;
 var TARGET_CLASS_ACC = 0.75;
-var REVIEW_ZOOM = 17;
+var REVIEW_ZOOM = 17;           // default; each site can override with reviewZoom
+var S2_CLOUD_SCORE_MIN = 0.6;   // Cloud Score+ threshold for the Sentinel-2 review layer
 
 // STARTER class schemes. The team must confirm these. Keep only classes that
 // reviewers can tell apart reliably from imagery.
+// reviewZoom : map zoom used when showing each review point
+// s2First    : true = automatically show Sentinel-2 true color while reviewing
+//              (use where the basemap has gaps in high-resolution imagery)
 var SITES = {
-  'Skeleton Coast Park': {id: 885, zoom: 7, classes: [
+  'Skeleton Coast Park': {id: 885, zoom: 7, reviewZoom: 17, s2First: false, classes: [
     {name: 'Dune sand', color: 'f2d16b', def: 'Loose sand dunes and sand sheets'},
     {name: 'Gravel plain', color: 'b08d57', def: 'Flat stony or gravel desert surface'},
     {name: 'Rock / dark surface', color: '4d4d4d', def: 'Exposed bedrock, dark rock or shadowed terrain'},
@@ -48,7 +64,7 @@ var SITES = {
     {name: 'Sparse vegetation', color: '2e7d32', def: 'Visible plant cover, including riverbed vegetation'},
     {name: 'Water / wet sand', color: '3b78d8', def: 'Ocean surf, lagoons, standing water, wet sand'}
   ]},
-  'Salonga National Park': {id: 555697863, zoom: 6, classes: [
+  'Salonga National Park': {id: 555697863, zoom: 6, reviewZoom: 14, s2First: true, classes: [
     {name: 'Terra firme forest', color: '1b5e20', def: 'Dense forest on dry ground'},
     {name: 'Swamp / flooded forest', color: '7a87c6', def: 'Forest standing in or next to water'},
     {name: 'River / open water', color: '3b78d8', def: 'Rivers, lakes, open water channels'},
@@ -114,14 +130,22 @@ var yearSelect = ui.Select({items: ['2017', '2018', '2019', '2020', '2021', '202
                             value: '2024'});
 p1.add(ui.Label('Embedding year')); p1.add(yearSelect);
 p1.add(btn('Check data and load area', analyzeArea));
+p1.add(ui.Label('Already have saved labels? Run the check above, then load them here. This skips ' +
+  'steps 2-3 and takes you to Train (use step 2 afterward if you want to add more points). Do not re-run the check afterward (it clears loaded labels).',
+  {fontWeight: 'bold', margin: '12px 0 2px 0', whiteSpace: 'pre-wrap', fontSize: '12px'}));
+var assetBox = ui.Textbox({value: 'projects/YOUR_PROJECT/assets/labels_v1'});
+p1.add(assetBox);
+p1.add(btn('Load saved labels, then go to Train', loadFromAsset));
 
 // Step 2
 var p2 = stepPanels[1];
-title(p2, 'Review queue', 'Builds a list of random points spread across the area\'s different surface ' +
-  'types, so reviewers see desert dunes AND gravel, forest AND swamp, not just the common type. ' +
-  'The groups are only used to spread points out. They are not labels.');
-p2.add(ui.Label('Candidate points per group (' + N_STRATA + ' groups)'));
-var candBox = ui.Textbox({value: '40'}); p2.add(candBox);
+title(p2, 'Add points (review queue)', 'Builds a queue of NEW random points, spread across the area\'s ' +
+  'different surface types, on top of any labels you already have (labeled here or loaded from an asset). ' +
+  'Points you already labeled are never offered again. The groups only spread points out. They are not labels.');
+var existingLabel = ui.Label('Labels already in this session: 0', {fontSize: '12px', fontWeight: 'bold'});
+p2.add(existingLabel);
+p2.add(ui.Label('How many NEW points do you want to add?'));
+var candBox = ui.Textbox({value: '50'}); p2.add(candBox);
 p2.add(btn('Build review queue', buildQueue));
 
 // Step 3
@@ -166,12 +190,12 @@ p5.add(btn('Calculate validation metrics', calculateValidation));
 // Step 6
 var p6 = stepPanels[5];
 title(p6, 'Save and share', 'Exports go to Google Drive (start them in the Tasks tab). Saving labels to an ' +
-  'Earth Engine asset lets teammates load your work.');
+  'Earth Engine asset lets teammates load your work (the asset ID box is in step 1).');
 p6.add(ui.Label('Raster export scale (m)'));
 var exportScaleSelect = ui.Select({items: ['10', '30', '60'], value: '30'}); p6.add(exportScaleSelect);
 p6.add(btn('Create export tasks (map, tables, settings)', createExports));
-p6.add(ui.Label('Labels asset ID (use a new name for every save)', {margin: '10px 0 0 0'}));
-var assetBox = ui.Textbox({value: 'projects/YOUR_PROJECT/assets/labels_v1'}); p6.add(assetBox);
+p6.add(ui.Label('Labels are saved to the asset ID typed in step 1. Use a NEW name for every save.',
+  {margin: '10px 0 0 0', fontSize: '12px', whiteSpace: 'pre-wrap'}));
 p6.add(btn('Save labels to asset', saveToAsset));
 p6.add(btn('Load labels from asset (merge)', loadFromAsset));
 
@@ -229,6 +253,8 @@ function countByClass(list) {
 }
 
 function updateCounts() {
+  var nTr = labeled('training').length, nVa = labeled('validation').length;
+  existingLabel.setValue('Labels already in this session: ' + (nTr + nVa) + ' (' + nTr + ' training, ' + nVa + ' validation)');
   if (!currentClasses) { return; }
   var tr = countByClass(labeled('training')), va = countByClass(labeled('validation'));
   var lines = ['Class                 train        validation'];
@@ -291,7 +317,7 @@ function analyzeArea() {
         }).get('A00')
       }).evaluate(function (r, err3) {
         if (err3) { setStatus('Coverage check failed: ' + err3); return; }
-        if (isNaN(r.areaKm2 > 0)) { setStatus('Boundary is empty. Stopped.'); return; }
+        if (!(r.areaKm2 > 0)) { setStatus('Boundary is empty. Stopped.'); return; }
         if (r.coverage === null || r.coverage < REQUIRED_COVERAGE) {
           setStatus('Embedding coverage is ' + (r.coverage === null ? 'unavailable' :
             (100 * r.coverage).toFixed(2) + '%') + '; ' + (100 * REQUIRED_COVERAGE) + '% required. Stopped.');
@@ -310,7 +336,7 @@ function analyzeArea() {
         setStatus('Data check passed.\n' + siteName + ', ' + year + '\nArea: ' +
           Math.round(r.areaKm2).toLocaleString() + ' km2\nEmbedding coverage: ' +
           (100 * r.coverage).toFixed(2) + '% (checked at ' + COVERAGE_SCALE_M + ' m)\n' +
-          'Next: step 2, build the review queue.');
+          'Next: step 2 to build a review queue, OR load saved labels with the button at the bottom of step 1.');
         showStep(1);
       });
     });
@@ -318,28 +344,49 @@ function analyzeArea() {
 }
 
 // ---------------- 2. QUEUE ----------------
+var queueRound = 0;
 function buildQueue() {
   if (currentImg === null) { setStatus('Complete step 1 first.'); return; }
-  var per = Number(candBox.getValue());
-  if (isNaN(per > 0)) { setStatus('Enter a positive number of candidate points.'); return; }
-  setStatus('Building queue (clustering and sampling; may take a minute)...');
+  var want = Math.floor(Number(candBox.getValue()));
+  if (!(want > 0)) { setStatus('Enter how many NEW points you want to add (a whole number above 0).'); return; }
+  var per = Math.max(5, Math.ceil(2 * want / N_STRATA));   // 2x extra covers points dropped near block edges
+  queueRound++;
+  var seed = SEED + 7 * records.length + queueRound;       // new random draw every time
+  var before = labeled('training').length + labeled('validation').length;
+  setStatus('Building queue of ' + want + ' new points (clustering and sampling; may take a minute)...');
   var sample = currentImg.sample({region: currentGeom, scale: 200, numPixels: 5000, seed: SEED, tileScale: 4});
   var clusterer = ee.Clusterer.wekaKMeans(N_STRATA).train(sample);
   var strata = currentImg.cluster(clusterer).rename('stratum');
   strata.stratifiedSample({numPoints: per, classBand: 'stratum', region: currentGeom, scale: 100,
-                           seed: SEED, geometries: true, tileScale: 4})
+                           seed: seed, geometries: true, tileScale: 4})
     .evaluate(function (fc, err) {
       if (err) { setStatus('Queue failed: ' + err); return; }
-      var q = [], dropped = 0;
+      var have = doneKeys(), groups = {}, dropped = 0, dup = 0;
       fc.features.forEach(function (f) {
         var c = f.geometry.coordinates, b = blockInfo(c[0], c[1]);
-        if (b.edge < GUARD_M) { dropped++; return; }   // guard band keeps the sets apart
-        q.push({lon: c[0], lat: c[1], stratum: f.properties.stratum, dataset: b.dataset});
+        if (b.edge < GUARD_M) { dropped++; return; }          // guard band keeps the sets apart
+        if (have[keyOf(c[0], c[1])]) { dup++; return; }       // never re-offer a labeled point
+        var s = f.properties.stratum;
+        (groups[s] = groups[s] || []).push({lon: c[0], lat: c[1], stratum: s, dataset: b.dataset});
       });
-      queue = seededShuffle(q, SEED);
+      // Take points round-robin across surface-type groups so the spread stays even.
+      var keys = Object.keys(groups);
+      keys.forEach(function (k, i) { seededShuffle(groups[k], seed + i); });
+      var q = [], took = true;
+      for (var rnd = 0; q.length < want && took; rnd++) {
+        took = false;
+        for (var g = 0; g < keys.length && q.length < want; g++) {
+          if (rnd < groups[keys[g]].length) { q.push(groups[keys[g]][rnd]); took = true; }
+        }
+      }
+      queue = seededShuffle(q, seed);
       var nt = q.filter(function (p) { return p.dataset === 'training'; }).length;
-      setStatus('Queue ready: ' + q.length + ' points (' + nt + ' training, ' + (q.length - nt) +
-                ' validation). ' + dropped + ' dropped near block edges.\nGo to step 3 and start labeling.');
+      setStatus('Queue ready: ' + q.length + ' NEW points (' + nt + ' training, ' + (q.length - nt) +
+                ' validation) on top of the ' + before + ' labels you already have.' +
+                (q.length < want ? '\nOnly ' + q.length + ' of the ' + want + ' requested were available; click Build again for more.' : '') +
+                '\n(' + dropped + ' dropped near block edges, ' + dup + ' already labeled.)' +
+                '\nBuilding a new queue replaces any unlabeled points left in the old one.' +
+                '\nGo to step 3 and start labeling.');
       qIndex = -1;
       goToNext();
       showStep(2);
@@ -360,13 +407,39 @@ function goToNext() {
   pointInfo.setValue('Queue finished. Build a larger queue or add extra points.');
   dropLayer('current');
 }
+
+// Sentinel-2 true-color layer (Cloud Score+ masked), created once and kept at the
+// BOTTOM of the layer stack so the red review circle always draws on top of it.
+function s2Layer() {
+  if (layerRefs.s2 === null) {
+    var start = ee.Date.fromYMD(currentYear, 1, 1);
+    var cs = ee.ImageCollection('GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED');
+    var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+      .filterDate(start, start.advance(1, 'year')).filterBounds(currentGeom)
+      .linkCollection(cs, ['cs_cdf'])
+      .map(function (im) { return im.updateMask(im.select('cs_cdf').gte(S2_CLOUD_SCORE_MIN)); })
+      .median();
+    var l = ui.Map.Layer(s2, {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000},
+                         'Sentinel-2 ' + currentYear + ' (true color)', false);
+    map.layers().insert(0, l);
+    layerRefs.s2 = l;
+  }
+  return layerRefs.s2;
+}
+function toggleS2() {
+  if (currentGeom === null) { setStatus('Complete step 1 first.'); return; }
+  var l = s2Layer();
+  l.setShown(!l.getShown());
+}
+
 function showQueuePoint(i) {
   if (!queue.length || !(i >= 0 && i < queue.length)) { setStatus('No such queue point.'); return; }
   qIndex = i;
-  var p = queue[i];
+  var p = queue[i], info = SITES[currentSite];
+  if (info.s2First) { s2Layer().setShown(true); }
   dropLayer('current');
   layerRefs.current = addLayer(ee.Geometry.Point([p.lon, p.lat]).buffer(15), {color: 'red'}, 'Current point', true);
-  map.setCenter(p.lon, p.lat, REVIEW_ZOOM);
+  map.setCenter(p.lon, p.lat, info.reviewZoom || REVIEW_ZOOM);
   pointInfo.setValue('Point ' + (i + 1) + ' of ' + queue.length + '\nWill be used for: ' +
                      p.dataset.toUpperCase() + '\nThe red circle is about 30 m wide.');
 }
@@ -420,15 +493,6 @@ function addManual() {
     updateLayers();
     setStatus('Added a ' + b.dataset + ' point: ' + classNames()[id] + '.');
   });
-}
-function toggleS2() {
-  if (currentGeom === null) { setStatus('Complete step 1 first.'); return; }
-  if (layerRefs.s2 !== null) { layerRefs.s2.setShown(!layerRefs.s2.getShown()); return; }
-  var start = ee.Date.fromYMD(currentYear, 1, 1);
-  var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').filterDate(start, start.advance(1, 'year'))
-    .filterBounds(currentGeom).filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)).median().clip(currentGeom);
-  layerRefs.s2 = addLayer(s2, {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000},
-                          'Sentinel-2 ' + currentYear + ' (true color)', true);
 }
 
 // ---------------- 4. TRAIN ----------------
@@ -541,7 +605,7 @@ function createExports() {
       required_coverage: REQUIRED_COVERAGE, n_strata: N_STRATA, block_m: BLOCK_M, min_sep_m: MIN_SEP_M,
       train_fraction: TRAIN_FRACTION, trees: Number(treeBox.getValue()), seed: SEED,
       n_training_labels: labeled('training').length, n_validation_labels: labeled('validation').length,
-      label_source: 'human-reviewed', app_version: 'v3'})]),
+      label_source: 'human-reviewed', app_version: 'v3.2'})]),
     description: t + '_Run_Settings', fileNamePrefix: t + '_Run_Settings', fileFormat: 'CSV'});
   setStatus('Export tasks created. Open the Tasks tab (top right) and click Run on each.');
 }
@@ -555,9 +619,12 @@ function saveToAsset() {
   setStatus('Save task created. Run it in the Tasks tab. Use a NEW asset name next time.\n' +
             'Share the asset with teammates so they can load it.');
 }
+
 function loadFromAsset() {
-  if (currentGeom === null) { setStatus('Complete step 1 first, then load labels.'); return; }
+  if (currentGeom === null) { setStatus('Run "Check data and load area" first (step 1), then load labels.'); return; }
   var id = assetBox.getValue().trim();
+  if (!id || id.indexOf('YOUR_PROJECT') >= 0) { setStatus('Enter a real asset ID first (replace YOUR_PROJECT).'); return; }
+  setStatus('Loading labels...');
   ee.FeatureCollection(id).evaluate(function (fc, err) {
     if (err) { setStatus('Could not load asset: ' + err); return; }
     var have = doneKeys(), added = 0, skipped = 0, otherSite = 0;
@@ -574,7 +641,15 @@ function loadFromAsset() {
     });
     currentClassified = null;
     updateLayers();
-    setStatus('Loaded ' + added + ' labels. Skipped ' + skipped + ' too close to block edges and ' +
-              otherSite + ' from a different site or year.');
+    var tr = labeled('training'), va = labeled('validation'), ct = countByClass(tr), ok = [], low = [];
+    currentClasses.forEach(function (c, i) {
+      if ((ct[i] || 0) >= TRAIN_FLOOR) { ok.push(c.name); } else { low.push(c.name + ' (' + (ct[i] || 0) + ')'); }
+    });
+    setStatus('Loaded ' + added + ' labels (skipped ' + skipped + ' near block edges, ' + otherSite +
+      ' from another site/year).\nNow have ' + tr.length + ' training and ' + va.length + ' validation labels.' +
+      '\nClasses that will be trained (' + TRAIN_FLOOR + '+ training labels): ' + (ok.length ? ok.join(', ') : 'none') +
+      '\nLeft out for now: ' + (low.length ? low.join(', ') : 'none') +
+      '\n\nNext: step 4 to train with these labels, OR step 2 to add more points on top of them.');
+    showStep(3);
   });
 }
