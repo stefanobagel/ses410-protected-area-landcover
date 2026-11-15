@@ -1,0 +1,123 @@
+{
+  "version": "4.0.1",
+  "naming": "User v0.4 alias; maintained v4 paths and schema identities retained",
+  "gee_repository": "users/arisol/protected-area-landcover-ses410",
+  "gee_branch": "master",
+  "gee_commit": "44d0d23f6c3af4f2f89c08569603767e8685cc64",
+  "deployed_scripts": [
+    {
+      "module": "users/arisol/protected-area-landcover-ses410:HAMMER_CORE_v4",
+      "sha256": "5bc71fef0d5791e37047ecc16d03c2d93af571e601c245c174b8fbe65085e4fa",
+      "bytes": 91002,
+      "remote_byte_match": true
+    },
+    {
+      "module": "users/arisol/protected-area-landcover-ses410:APP_HAMMER_v4",
+      "sha256": "2ba243386f0e48ffeecbc9e775b28f321e51aa737c6ef3094089ba4bbaedd598",
+      "bytes": 38312,
+      "remote_byte_match": true
+    }
+  ],
+  "github_repository": "stefanobagel/ses410-protected-area-landcover",
+  "github_branch": "main",
+  "github_identity": "The ordinary commit containing this file; deployment and source publication verified separately",
+  "origins": {
+    "vedant_commit": "b10d328eec2285a5d7b1cc6dbb6b8f42482a69c9",
+    "vedant_file_blob": "99589f957260e552c4ff16afeb9aad7fcd24bb26",
+    "anthony_supplied_version": "U1.1.2",
+    "anthony_supplied_sha256": "ee2a8c52b7daf94b0bc6b8f771f93c0c32c321423e26d8b202d22214667d9a1d"
+  },
+  "files": [
+    {
+      "path": "APP_HAMMER_v4.js",
+      "sha256": "2ba243386f0e48ffeecbc9e775b28f321e51aa737c6ef3094089ba4bbaedd598",
+      "bytes": 38312
+    },
+    {
+      "path": "baseline/APP_LANDCOVER_v0_2.js",
+      "sha256": "0e356220295c70af9289a08cc4d3cb289134eb3dc8404dc66ba746e7fd0c22ef",
+      "bytes": 18614
+    },
+    {
+      "path": "baseline/SES410_landcover_v0_2.js",
+      "sha256": "8d7d778e0a2ec5f2c4592bf8585386edcfc87c5ae925687901a5415f5312fc00",
+      "bytes": 31168
+    },
+    {
+      "path": "baseline/tests/verify_v0_2.cjs",
+      "sha256": "b688247122d0d171bf4f7a2368572634ab474be109eba26efeb2761e899f5fd9",
+      "bytes": 10232
+    },
+    {
+      "path": "contracts.js",
+      "sha256": "c4356dd55ded433f8160dd57a50b82f61bdd9ad6b5f28e9bcfe021e5b6197854",
+      "bytes": 26912
+    },
+    {
+      "path": "core.js",
+      "sha256": "87057e814a9f470644998f382a4a68166996c7b83e739081076305330bd5652a",
+      "bytes": 29279
+    },
+    {
+      "path": "HAMMER_CORE_v4.js",
+      "sha256": "5bc71fef0d5791e37047ecc16d03c2d93af571e601c245c174b8fbe65085e4fa",
+      "bytes": 91002
+    },
+    {
+      "path": "tests/application.cjs",
+      "sha256": "90aba4ae4c81011f60b01d9d1aa0d47a3727533188eeb88f67864e0ddc4740a3",
+      "bytes": 10017
+    },
+    {
+      "path": "tests/contracts.cjs",
+      "sha256": "13cf47c4db41046a632028bb9e51eb719b555ad19da24b712579ff66099a4cc7",
+      "bytes": 2798
+    },
+    {
+      "path": "tests/core.cjs",
+      "sha256": "ff0d24a86b6696771c587bd475d4f28d9517913d695b3663e43124ba27241b8a",
+      "bytes": 6749
+    },
+    {
+      "path": "tests/exporters.cjs",
+      "sha256": "5c129c5121203ebbc989c1f9376e11c41b304a568ee344cd29a9136c77e21b6f",
+      "bytes": 902
+    },
+    {
+      "path": "tests/migration.cjs",
+      "sha256": "a57d4557cbed54ed705f1572fac533966ad4008023229cc19253de2b18bb5b69",
+      "bytes": 12967
+    },
+    {
+      "path": "tests/native_engineering.js",
+      "sha256": "1a1bc97e53d44459a28978f4b1a16b5b9ebc84499c8aefe6247bcdee9e1305ff",
+      "bytes": 2293
+    },
+    {
+      "path": "tests/native_reviewed_fixture.js",
+      "sha256": "fb34744750027215384d7472f7417254277bcdfd54cce5391ed8a839cf0fe1cd",
+      "bytes": 3024
+    },
+    {
+      "path": "tests/workflow.cjs",
+      "sha256": "c3d16fc5d34cb2cb446ec380c801ff378f8fc8d73bad01271e926bac18575921",
+      "bytes": 7943
+    },
+    {
+      "path": "tools/build.py",
+      "sha256": "1be9dc31608248404cf401cbae1881cd0fd0f31d4c48c580722c02869fcbd6c5",
+      "bytes": 4898
+    },
+    {
+      "path": "tools/docs.py",
+      "sha256": "b3126aea9296492fd8f495cd051914a7dedab8b434b35e2de778be5f0bbb531b",
+      "bytes": 9798
+    },
+    {
+      "path": "workflow.js",
+      "sha256": "11753de7f941563e8bfff244f13f833f3f79a62d28f2fd696e332b458c1c4254",
+      "bytes": 3547
+    }
+  ],
+  "hash_method": "SHA256 exact emitted bytes; generated core also carries normalized UTF8/LF build input identities"
+}
