@@ -77,10 +77,12 @@ project changes were made during the completion step.
 
 Elapsed time and observed batchEecuUsageSeconds are separate task receipts.
 Skeleton map execution1306.91s, measured13.130374 EECU-hours; interactive run
-EECU is unavailable. Salonga map execution9684.91s under restricted
-throughput, measured16.861837 EECU-hours from final task metadata.
-Interim service consumption counters were revised; only final per-task values
-are reported as completed consumption. No resource estimate is inferred from elapsed time. A single
+EECU is unavailable. Salonga reports attempt2:9684.91s from that reported
+attempt's start to completion, with16.861837 EECU-hours in final task metadata.
+This is the final reported counter, not a reconstructed total across attempts.
+Earlier live counters were revised; consumption across all attempts and other
+project activity cannot be reconstructed from these receipts. Submit-to-completion
+time includes earlier work and waiting. No resource estimate is inferred from elapsed time. A single
 run does not establish a general runtime promise or user completion time.
 
 ## Scientific and operational limits
