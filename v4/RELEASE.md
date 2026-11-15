@@ -97,8 +97,10 @@ established no optimum/smallest supported distance or causal inflation estimate.
 
 Preview tiles are explicitly exploratory and display-scale dependent; canonical
 sampling/export are10m. Point checks do not establish whole-map truth. Full-park
-mapped-area calculations and30/60m derivatives have technical serialization
-coverage but were not repeatedly exported for this bounded release. A timed
+mapped-area calculations and30/60m MODE derivatives are implemented, but their
+full-park output files were not exported/read back in this bounded release.
+Native area accounting was verified only in the small fixture. A new multi-zoom
+classification-preview trial remains unperformed under the compute restriction. A timed
 intended-user trial and review-labor study have not been performed.
 
 Jiwei/team must resolve detailed legend definitions, appropriate evidence and
